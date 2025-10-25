@@ -4,15 +4,14 @@ import { Geist, Geist_Mono } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { WalletProvider } from "@/lib/wallet-context"
 import "./globals.css"
-import "@/lib/reown-config"
 
 const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "BeyondBanter - Put your money where your  mouth is",
+  title: "GoalPredict - Soccer Prediction Market",
   description: "Decentralized soccer prediction market where users stake tokens on match outcomes",
-  
+  generator: "v0.app",
 }
 
 export default function RootLayout({

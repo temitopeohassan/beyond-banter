@@ -1,6 +1,6 @@
 "use client"
 
-import { LayoutWrapper } from "@/components/layout-wrapper"
+import { Header } from "@/components/header"
 import { useWallet } from "@/lib/wallet-context"
 import { ProfileHeader } from "@/components/profile-header"
 import { ProfileStats } from "@/components/profile-stats"
@@ -48,8 +48,9 @@ export default function ProfilePage() {
 
   if (!isConnected) {
     return (
-      <LayoutWrapper>
-        <div className="container mx-auto px-4 py-8">
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="container mx-auto px-4 py-8">
           <div className="text-center py-20">
             <h2 className="text-2xl font-bold text-foreground mb-4">Connect Your Wallet</h2>
             <p className="text-muted-foreground mb-6">Please connect your wallet to view your profile</p>
@@ -57,14 +58,16 @@ export default function ProfilePage() {
               <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">Go to Dashboard</Button>
             </Link>
           </div>
-        </div>
-      </LayoutWrapper>
+        </main>
+      </div>
     )
   }
 
   return (
-    <LayoutWrapper>
-      <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen bg-background">
+      <Header />
+
+      <main className="container mx-auto px-4 py-8">
         {/* Back Button */}
         <Link href="/">
           <Button variant="ghost" className="gap-2 mb-6 text-muted-foreground hover:text-foreground">
@@ -91,7 +94,7 @@ export default function ProfilePage() {
             <LeagueRankings rankings={mockRankings} userRank={3} />
           </div>
         </div>
-      </div>
-    </LayoutWrapper>
+      </main>
+    </div>
   )
 }

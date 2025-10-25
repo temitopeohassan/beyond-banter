@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { LayoutWrapper } from "@/components/layout-wrapper"
+import { Header } from "@/components/header"
 import { MatchCard } from "@/components/match-card"
 import { StatsOverview } from "@/components/stats-overview"
 import { Button } from "@/components/ui/button"
@@ -59,8 +59,10 @@ export default function Home() {
   const [selectedTab, setSelectedTab] = useState("active")
 
   return (
-    <LayoutWrapper>
-      <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen bg-background">
+      <Header />
+
+      <main className="container mx-auto px-4 py-8">
         {/* Stats Overview */}
         <StatsOverview />
 
@@ -99,7 +101,7 @@ export default function Home() {
             </TabsContent>
           </Tabs>
         </div>
-      </div>
-    </LayoutWrapper>
+      </main>
+    </div>
   )
 }

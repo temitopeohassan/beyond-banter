@@ -1,6 +1,6 @@
 "use client"
 
-import { LayoutWrapper } from "@/components/layout-wrapper"
+import { Header } from "@/components/header"
 import { MatchResultsHeader } from "@/components/match-results-header"
 import { ResultsDistribution } from "@/components/results-distribution"
 import { WinnersList } from "@/components/winners-list"
@@ -78,8 +78,10 @@ const mockLosers = [
 
 export default function MatchResultsPage() {
   return (
-    <LayoutWrapper>
-      <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen bg-background">
+      <Header />
+
+      <main className="container mx-auto px-4 py-8">
         {/* Back Button */}
         <Link href="/">
           <Button variant="ghost" className="gap-2 mb-6 text-muted-foreground hover:text-foreground">
@@ -132,7 +134,7 @@ export default function MatchResultsPage() {
           <WinnersList winners={mockWinners} />
           <LosersList losers={mockLosers} />
         </div>
-      </div>
-    </LayoutWrapper>
+      </main>
+    </div>
   )
 }

@@ -5,13 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { AlertCircle, Wallet } from "lucide-react"
-import { useWallet } from "@/lib/wallet-context"
-import { useStake } from "@/lib/use-stake"
-import { useAppKit } from "@reown/appkit/react"
+import { AlertCircle } from "lucide-react"
 
 interface Match {
-  id?: number // Match ID for blockchain interaction
   teamA: string
   teamB: string
   odds: { teamA: number; teamB: number }
@@ -26,33 +22,20 @@ interface StakingPanelProps {
 
 export function StakingPanel({ match, selectedTeam, onSelectTeam }: StakingPanelProps) {
   const [stakeAmount, setStakeAmount] = useState("")
-  const { isConnected, address, balance } = useWallet()
-  const { stake, isStaking } = useStake()
-  const { open } = useAppKit()
+  const [isLoading, setIsLoading] = useState(false)
 
   const selectedTeamName = selectedTeam === "A" ? match.teamA : selectedTeam === "B" ? match.teamB : null
   const selectedOdds = selectedTeam === "A" ? match.odds.teamA : selectedTeam === "B" ? match.odds.teamB : 0
   const potentialWinnings = stakeAmount ? (Number.parseFloat(stakeAmount) * selectedOdds).toFixed(2) : "0.00"
 
   const handleStake = async () => {
-    if (!selectedTeam || !stakeAmount || !isConnected) return
-    
-    // Convert team selection to outcome (0: Team A, 1: Team B)
-    const outcome = selectedTeam === "A" ? 0 : 1
-    
-    // Use match.id if available, otherwise use a placeholder
-    const matchId = match.id || 0
-    
-    const result = await stake({
-      matchId,
-      outcome: outcome as 0 | 1,
-      amount: stakeAmount
-    })
-
-    if (result.success) {
-      setStakeAmount("")
-      onSelectTeam(null)
-    }
+    if (!selectedTeam || !stakeAmount) return
+    setIsLoading(true)
+    // Simulate API call
+    await new Promise((resolve) => setTimeout(resolve, 1500))
+    setIsLoading(false)
+    setStakeAmount("")
+    onSelectTeam(null)
   }
 
   return (
@@ -141,35 +124,15 @@ export function StakingPanel({ match, selectedTeam, onSelectTeam }: StakingPanel
               <p className="text-xs text-destructive">Staking involves risk. Only stake what you can afford to lose.</p>
             </div>
 
-            {/* Wallet Connection Check */}
-            {!isConnected ? (
-              <Button
-                onClick={() => open()}
-                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
-                size="lg"
-              >
-                <Wallet className="w-4 h-4 mr-2" />
-                Connect Wallet to Stake
-              </Button>
-            ) : (
-              <>
-                {/* Balance Display */}
-                <div className="flex justify-between items-center text-sm bg-muted p-3 rounded-lg">
-                  <span className="text-muted-foreground">Your Balance</span>
-                  <span className="font-semibold text-foreground">{parseFloat(balance).toFixed(4)} ETH</span>
-                </div>
-
-                {/* Stake Button */}
-                <Button
-                  onClick={handleStake}
-                  disabled={!stakeAmount || isStaking || parseFloat(stakeAmount) <= 0}
-                  className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
-                  size="lg"
-                >
-                  {isStaking ? "Processing Transaction..." : "Confirm Stake"}
-                </Button>
-              </>
-            )}
+            {/* Stake Button */}
+            <Button
+              onClick={handleStake}
+              disabled={!stakeAmount || isLoading}
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+              size="lg"
+            >
+              {isLoading ? "Processing..." : "Confirm Stake"}
+            </Button>
           </>
         )}
 

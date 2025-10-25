@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { LayoutWrapper } from "@/components/layout-wrapper"
+import { Header } from "@/components/header"
 import { StakingPanel } from "@/components/staking-panel"
 import { MatchDetails } from "@/components/match-details"
 import { PoolChart } from "@/components/pool-chart"
@@ -62,8 +62,10 @@ export default function MatchPage() {
   const [selectedTeam, setSelectedTeam] = useState<"A" | "B" | null>(null)
 
   return (
-    <LayoutWrapper>
-      <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen bg-background">
+      <Header />
+
+      <main className="container mx-auto px-4 py-8">
         {/* Back Button */}
         <Link href="/">
           <Button variant="ghost" className="gap-2 mb-6 text-muted-foreground hover:text-foreground">
@@ -91,7 +93,7 @@ export default function MatchPage() {
             <StakingPanel match={mockMatch} selectedTeam={selectedTeam} onSelectTeam={setSelectedTeam} />
           </div>
         </div>
-      </div>
-    </LayoutWrapper>
+      </main>
+    </div>
   )
 }

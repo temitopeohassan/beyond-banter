@@ -9,9 +9,9 @@ export function Header() {
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
           <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
-            <span className="text-primary-foreground font-bold text-lg">BB</span>
+            <span className="text-primary-foreground font-bold text-lg">GP</span>
           </div>
-          <h1 className="text-2xl font-bold text-foreground">BeyondBanter</h1>
+          <h1 className="text-2xl font-bold text-foreground">GoalPredict</h1>
         </Link>
 
         <nav className="hidden md:flex items-center gap-8">

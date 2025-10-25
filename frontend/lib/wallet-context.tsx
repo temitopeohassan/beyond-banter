@@ -1,102 +1,71 @@
 "use client"
 
 import type React from "react"
-import { createContext, useContext, useState, useCallback, useEffect } from "react"
-import { BrowserProvider } from "ethers"
-import { useAppKitAccount, useAppKitProvider } from "@reown/appkit/react"
-import { initializeFarcasterSDK, getFarcasterContext, type FarcasterContext } from "./farcaster-sdk"
-import { getBalance } from "./contract-utils"
+import { createContext, useContext, useState, useCallback } from "react"
 
 interface WalletContextType {
   isConnected: boolean
   address: string | null
-  balance: string
+  balance: number
   isConnecting: boolean
-  provider: BrowserProvider | null
-  farcasterContext: FarcasterContext
-  updateBalance: () => Promise<void>
-  sendTransaction: (to: string, amount: string, data?: string) => Promise<any>
+  connectWallet: () => Promise<void>
+  disconnectWallet: () => void
+  updateBalance: (amount: number) => void
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined)
 
 export function WalletProvider({ children }: { children: React.ReactNode }) {
-  const { address, isConnected, status } = useAppKitAccount()
-  const { walletProvider } = useAppKitProvider("eip155")
-  const [balance, setBalance] = useState("0")
-  const [provider, setProvider] = useState<BrowserProvider | null>(null)
-  const [farcasterContext, setFarcasterContext] = useState<FarcasterContext>({ isSDKLoaded: false })
-  const isConnecting = status === "connecting"
+  const [isConnected, setIsConnected] = useState(false)
+  const [address, setAddress] = useState<string | null>(null)
+  const [balance, setBalance] = useState(0)
+  const [isConnecting, setIsConnecting] = useState(false)
 
-  // Initialize Farcaster SDK on mount
-  useEffect(() => {
-    const initFarcaster = async () => {
-      const context = await initializeFarcasterSDK()
-      setFarcasterContext(context)
+  const connectWallet = useCallback(async () => {
+    setIsConnecting(true)
+    try {
+      // Simulate wallet connection
+      await new Promise((resolve) => setTimeout(resolve, 1500))
+
+      // Mock wallet data
+      const mockAddress = "0x" + Math.random().toString(16).slice(2, 42)
+      const mockBalance = Math.floor(Math.random() * 50000) + 5000
+
+      setAddress(mockAddress)
+      setBalance(mockBalance)
+      setIsConnected(true)
+
+      // Store in localStorage for persistence
+      localStorage.setItem("walletAddress", mockAddress)
+      localStorage.setItem("walletBalance", mockBalance.toString())
+    } catch (error) {
+      console.error("Failed to connect wallet:", error)
+    } finally {
+      setIsConnecting(false)
     }
-    initFarcaster()
   }, [])
 
-  // Update provider when wallet provider changes
-  useEffect(() => {
-    if (walletProvider) {
-      const ethersProvider = new BrowserProvider(walletProvider as any)
-      setProvider(ethersProvider)
-    } else {
-      setProvider(null)
-    }
-  }, [walletProvider])
+  const disconnectWallet = useCallback(() => {
+    setIsConnected(false)
+    setAddress(null)
+    setBalance(0)
+    localStorage.removeItem("walletAddress")
+    localStorage.removeItem("walletBalance")
+  }, [])
 
-  // Update balance when address or provider changes
-  const updateBalance = useCallback(async () => {
-    if (address && provider) {
-      try {
-        const bal = await getBalance(provider, address)
-        setBalance(bal)
-      } catch (error) {
-        console.error("Failed to fetch balance:", error)
-        setBalance("0")
+  const updateBalance = useCallback(
+    (amount: number) => {
+      setBalance((prev) => prev + amount)
+      if (address) {
+        localStorage.setItem("walletBalance", (balance + amount).toString())
       }
-    } else {
-      setBalance("0")
-    }
-  }, [address, provider])
-
-  useEffect(() => {
-    updateBalance()
-  }, [updateBalance])
-
-  // Send transaction helper
-  const sendTransaction = useCallback(
-    async (to: string, amount: string, data?: string) => {
-      if (!provider) {
-        throw new Error("No provider available")
-      }
-
-      const signer = await provider.getSigner()
-      const tx = await signer.sendTransaction({
-        to,
-        value: amount,
-        data: data || "0x",
-      })
-
-      return tx
     },
-    [provider],
+    [address, balance],
   )
 
   return (
     <WalletContext.Provider
-      value={{
-        isConnected,
-        address: address || null,
-        balance,
-        isConnecting,
-        provider,
-        farcasterContext,
-        updateBalance,
-        sendTransaction,
-      }}
+      value={{ isConnected, address, balance, isConnecting, connectWallet, disconnectWallet, updateBalance }}
     >
       {children}
     </WalletContext.Provider>

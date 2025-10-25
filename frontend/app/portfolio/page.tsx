@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { LayoutWrapper } from "@/components/layout-wrapper"
+import { Header } from "@/components/header"
 import { PortfolioOverview } from "@/components/portfolio-overview"
 import { PortfolioChart } from "@/components/portfolio-chart"
 import { StakesTable } from "@/components/stakes-table"
@@ -109,8 +109,10 @@ export default function PortfolioPage() {
   const [selectedTab, setSelectedTab] = useState("overview")
 
   return (
-    <LayoutWrapper>
-      <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen bg-background">
+      <Header />
+
+      <main className="container mx-auto px-4 py-8">
         {/* Page Title */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-foreground mb-2">Your Portfolio</h1>
@@ -143,7 +145,7 @@ export default function PortfolioPage() {
             <StakesTable stakes={mockResolvedStakes} type="resolved" />
           </TabsContent>
         </Tabs>
-      </div>
-    </LayoutWrapper>
+      </main>
+    </div>
   )
 }
