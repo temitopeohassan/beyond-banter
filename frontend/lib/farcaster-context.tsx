@@ -22,6 +22,7 @@ import {
   NotificationPermission,
   NotificationPermissionStatus 
 } from '@farcaster/miniapp-sdk'
+import { initializeFarcasterSDK, getFarcasterSDK } from './farcaster-init'
 
 interface FarcasterContextType {
   // SDK instance
@@ -58,6 +59,10 @@ interface FarcasterContextType {
 
 const FarcasterContext = createContext<FarcasterContextType | undefined>(undefined)
 
+// Initialize Farcaster SDK early (this calls ready() immediately)
+// This ensures the splash screen is dismissed as soon as possible
+const globalSDK = typeof window !== 'undefined' ? initializeFarcasterSDK() : null
+
 export function FarcasterProvider({ children }: { children: React.ReactNode }) {
   const [sdk, setSdk] = useState<FarcasterMiniAppSDK | null>(null)
   const [user, setUser] = useState<User | null>(null)
@@ -75,21 +80,15 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
       try {
         setIsLoading(true)
         
-        // Initialize the Farcaster Mini App SDK
-        const farcasterSDK = new FarcasterMiniAppSDK({
+        // Use the globally initialized SDK (which already called ready())
+        // or get it from the init script
+        const farcasterSDK = getFarcasterSDK() || globalSDK || new FarcasterMiniAppSDK({
           // The SDK will automatically detect if it's running in a Farcaster environment
           // and configure itself accordingly
         })
         
+        // Set SDK
         setSdk(farcasterSDK)
-        
-        // Call ready() to dismiss the splash screen
-        try {
-          await farcasterSDK.actions.ready()
-          console.log('Farcaster SDK ready')
-        } catch (error) {
-          console.warn('SDK ready() not available (not in Farcaster environment):', error)
-        }
         
         // Check if user is already authenticated
         try {
