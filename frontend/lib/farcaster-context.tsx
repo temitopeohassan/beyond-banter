@@ -1,5 +1,19 @@
 'use client'
 
+/**
+ * Farcaster Mini App SDK Context Provider
+ * 
+ * This provider initializes the Farcaster SDK and calls sdk.actions.ready()
+ * to dismiss the splash screen when the app is ready.
+ * 
+ * Key Features:
+ * - Automatic SDK initialization on mount
+ * - Calls ready() to dismiss splash screen
+ * - Fallback handling when not in Farcaster environment
+ * - User authentication and wallet integration
+ * - Notification management
+ */
+
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { 
   FarcasterMiniAppSDK, 
@@ -69,27 +83,43 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
         
         setSdk(farcasterSDK)
         
+        // Call ready() to dismiss the splash screen
+        try {
+          await farcasterSDK.actions.ready()
+          console.log('Farcaster SDK ready')
+        } catch (error) {
+          console.warn('SDK ready() not available (not in Farcaster environment):', error)
+        }
+        
         // Check if user is already authenticated
-        const currentUser = await farcasterSDK.getUser()
-        if (currentUser) {
-          setUser(currentUser)
-          setIsAuthenticated(true)
+        try {
+          const currentUser = await farcasterSDK.getUser()
+          if (currentUser) {
+            setUser(currentUser)
+            setIsAuthenticated(true)
+          }
+        } catch (error) {
+          console.warn('Could not get user:', error)
         }
         
         // Check wallet connection
-        const currentWallet = await farcasterSDK.getWallet()
-        if (currentWallet) {
-          setWallet(currentWallet)
-          setIsWalletConnected(true)
-          setWalletAddress(currentWallet.address)
-          
-          // Get wallet balance
-          try {
-            const balance = await farcasterSDK.getWalletBalance()
-            setWalletBalance(balance)
-          } catch (error) {
-            console.warn('Could not fetch wallet balance:', error)
+        try {
+          const currentWallet = await farcasterSDK.getWallet()
+          if (currentWallet) {
+            setWallet(currentWallet)
+            setIsWalletConnected(true)
+            setWalletAddress(currentWallet.address)
+            
+            // Get wallet balance
+            try {
+              const balance = await farcasterSDK.getWalletBalance()
+              setWalletBalance(balance)
+            } catch (error) {
+              console.warn('Could not fetch wallet balance:', error)
+            }
           }
+        } catch (error) {
+          console.warn('Could not get wallet:', error)
         }
         
       } catch (error) {
