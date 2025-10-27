@@ -4,6 +4,8 @@ import { Geist, Geist_Mono } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { WalletProvider } from "@/lib/wallet-context"
 import { FarcasterProvider } from "@/lib/farcaster-context"
+import { FarcasterInitScript } from "@/components/farcaster-init-script"
+import "@/lib/farcaster-init" // Initialize Farcaster SDK early
 import "./globals.css"
 
 const _geist = Geist({ subsets: ["latin"] })
@@ -23,6 +25,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`font-sans antialiased`}>
+        <FarcasterInitScript />
         <FarcasterProvider>
           <WalletProvider>{children}</WalletProvider>
         </FarcasterProvider>

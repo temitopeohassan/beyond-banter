@@ -40,9 +40,23 @@ export function initializeFarcasterSDK(): FarcasterMiniAppSDK | null {
   }
 }
 
-// Auto-initialize on module load
+// Auto-initialize on module load (browser only)
 if (typeof window !== 'undefined') {
-  initializeFarcasterSDK()
+  // Call ready() as soon as possible
+  // Use requestIdleCallback if available, otherwise setTimeout(0)
+  const scheduleReady = () => {
+    try {
+      initializeFarcasterSDK()
+    } catch (error) {
+      console.warn('Error initializing Farcaster SDK:', error)
+    }
+  }
+  
+  if (typeof requestIdleCallback !== 'undefined') {
+    requestIdleCallback(scheduleReady, { timeout: 100 })
+  } else {
+    setTimeout(scheduleReady, 0)
+  }
 }
 
 export function getFarcasterSDK(): FarcasterMiniAppSDK | null {
