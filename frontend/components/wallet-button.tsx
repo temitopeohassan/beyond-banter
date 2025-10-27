@@ -9,11 +9,21 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Wallet, LogOut, Copy, Check } from "lucide-react"
+import { Wallet, LogOut, Copy, Check, User } from "lucide-react"
 import { useState } from "react"
+import { Badge } from "@/components/ui/badge"
 
 export function WalletButton() {
-  const { isConnected, address, balance, isConnecting, connectWallet, disconnectWallet } = useWallet()
+  const { 
+    isConnected, 
+    address, 
+    balance, 
+    isConnecting, 
+    connectWallet, 
+    disconnectWallet,
+    isFarcasterWallet,
+    farcasterUser
+  } = useWallet()
   const [copied, setCopied] = useState(false)
 
   const handleCopyAddress = () => {
@@ -41,14 +51,31 @@ export function WalletButton() {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground">
-          <Wallet className="w-4 h-4" />
+          {isFarcasterWallet ? <User className="w-4 h-4" /> : <Wallet className="w-4 h-4" />}
           <span className="hidden sm:inline">
-            {address?.slice(0, 6)}...{address?.slice(-4)}
+            {isFarcasterWallet && farcasterUser ? farcasterUser.displayName : `${address?.slice(0, 6)}...${address?.slice(-4)}`}
           </span>
-          <span className="sm:hidden">{address?.slice(0, 4)}...</span>
+          <span className="sm:hidden">
+            {isFarcasterWallet && farcasterUser ? farcasterUser.displayName?.slice(0, 8) : `${address?.slice(0, 4)}...`}
+          </span>
+          {isFarcasterWallet && (
+            <Badge variant="secondary" className="text-xs">
+              Farcaster
+            </Badge>
+          )}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
+      <DropdownMenuContent align="end" className="w-64">
+        {isFarcasterWallet && farcasterUser && (
+          <>
+            <div className="px-2 py-1.5">
+              <p className="text-xs text-muted-foreground mb-1">Farcaster Profile</p>
+              <p className="text-sm font-semibold text-foreground">{farcasterUser.displayName}</p>
+              <p className="text-xs text-muted-foreground">@{farcasterUser.username}</p>
+            </div>
+            <DropdownMenuSeparator />
+          </>
+        )}
         <div className="px-2 py-1.5">
           <p className="text-xs text-muted-foreground mb-1">Connected Wallet</p>
           <p className="text-sm font-mono font-semibold text-foreground break-all">{address}</p>

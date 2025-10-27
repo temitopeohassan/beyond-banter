@@ -21,6 +21,9 @@ export function Header() {
           <Link href="/portfolio" className="text-foreground hover:text-primary transition-colors">
             Portfolio
           </Link>
+          <Link href="/farcaster" className="text-foreground hover:text-primary transition-colors">
+            Farcaster
+          </Link>
           <Link href="/leaderboard" className="text-foreground hover:text-primary transition-colors">
             Leaderboard
           </Link>
