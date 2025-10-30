@@ -5,7 +5,7 @@ import { useWallet } from "@/lib/wallet-context"
 import Link from "next/link"
 
 export function Header() {
-  const { isConnected, isConnecting, connectWallet } = useWallet()
+  const { isConnected, isConnecting, connectWallet, address } = useWallet()
 
   // Auto-connect when running inside Farcaster
   useEffect(() => {
@@ -35,7 +35,12 @@ export function Header() {
 
         {/* Top navigation removed; replaced by a fixed footer tab bar */}
 
-        {/* WalletButton removed for Farcaster-only Mini App */}
+        {/* Connected wallet (concatenated) */}
+        {isConnected && address ? (
+          <span className="font-mono text-sm text-muted-foreground">
+            {address.slice(0, 6)}...{address.slice(-4)}
+          </span>
+        ) : null}
       </div>
     </header>
   )
