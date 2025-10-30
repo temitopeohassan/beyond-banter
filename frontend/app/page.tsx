@@ -7,7 +7,6 @@ import { StatsOverview } from "@/components/stats-overview"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
-// Mock data for matches
 const mockMatches = [
   {
     id: "1",
@@ -70,7 +69,9 @@ export default function Home() {
         <div className="mt-12">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-3xl font-bold text-foreground">Soccer Matches</h2>
-            <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">Create Match</Button>
+            <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">
+              Create Match
+            </Button>
           </div>
 
           <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
@@ -90,7 +91,9 @@ export default function Home() {
 
             <TabsContent value="upcoming" className="mt-6">
               <div className="text-center py-12">
-                <p className="text-muted-foreground">No upcoming matches at the moment</p>
+                <p className="text-muted-foreground">
+                  No upcoming matches at the moment
+                </p>
               </div>
             </TabsContent>
 
