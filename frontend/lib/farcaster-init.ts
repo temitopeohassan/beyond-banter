@@ -1,64 +1,47 @@
+"use client"
+
 /**
  * Farcaster SDK Initialization Script
- * 
- * This script initializes the Farcaster SDK and calls ready() as early as possible
- * to dismiss the splash screen when running in a Farcaster environment.
+ *
+ * This script initializes the Farcaster Mini App SDK and calls ready()
+ * as early as possible to dismiss the splash screen when running inside Farcaster.
  */
 
-import { FarcasterMiniAppSDK } from '@farcaster/miniapp-sdk'
+import { sdk } from "@farcaster/miniapp-sdk"
 
-// Initialize SDK when this module is loaded
-let sdk: FarcasterMiniAppSDK | null = null
 let readyCalled = false
 
-export function initializeFarcasterSDK(): FarcasterMiniAppSDK | null {
-  if (typeof window === 'undefined') {
-    return null
-  }
+export async function initializeFarcasterSDK() {
+  if (typeof window === "undefined") return
 
   try {
-    // Create SDK instance
-    sdk = new FarcasterMiniAppSDK()
-    
-    // Call ready() immediately to dismiss splash screen
-    if (!readyCalled && sdk.actions?.ready) {
+    // Ensure this runs only inside the Farcaster environment
+    if (!sdk.isMiniApp()) {
+      console.log("🧭 Not running inside Farcaster — skipping sdk.actions.ready()")
+      return
+    }
+
+    if (!readyCalled) {
       readyCalled = true
-      sdk.actions.ready()
-        .then(() => {
-          console.log('✅ Farcaster SDK ready() called - splash screen dismissed')
-        })
-        .catch((error) => {
-          console.warn('⚠️ ready() call failed - might not be in Farcaster environment:', error)
-          readyCalled = false
-        })
+      await sdk.actions.ready({
+        disableNativeGestures: false, // optional
+      })
+      console.log("✅ Farcaster SDK ready() called — splash screen dismissed")
     }
-    
-    return sdk
   } catch (error) {
-    console.warn('⚠️ Could not initialize Farcaster SDK (might not be in Farcaster environment):', error)
-    return null
+    console.error("❌ Failed to initialize Farcaster SDK:", error)
+    readyCalled = false
   }
 }
 
-// Auto-initialize on module load (browser only)
-if (typeof window !== 'undefined') {
-  // Call ready() as soon as possible
-  // Use requestIdleCallback if available, otherwise setTimeout(0)
-  const scheduleReady = () => {
-    try {
-      initializeFarcasterSDK()
-    } catch (error) {
-      console.warn('Error initializing Farcaster SDK:', error)
-    }
-  }
-  
-  if (typeof requestIdleCallback !== 'undefined') {
-    requestIdleCallback(scheduleReady, { timeout: 100 })
+// Optionally auto-initialize immediately on load (browser only)
+if (typeof window !== "undefined") {
+  // Schedule as soon as possible after hydration
+  if (typeof requestIdleCallback !== "undefined") {
+    requestIdleCallback(initializeFarcasterSDK, { timeout: 100 })
   } else {
-    setTimeout(scheduleReady, 0)
+    setTimeout(initializeFarcasterSDK, 0)
   }
 }
 
-export function getFarcasterSDK(): FarcasterMiniAppSDK | null {
-  return sdk
-}
+export { sdk }
