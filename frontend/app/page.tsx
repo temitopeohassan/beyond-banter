@@ -1,52 +1,52 @@
-"use client"
+'use client'
 
-import { useState } from "react"
-import { Header } from "@/components/header"
-import { MatchCard } from "@/components/match-card"
-import { StatsOverview } from "@/components/stats-overview"
-import { Button } from "@/components/ui/button"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useState } from 'react'
+import { Header } from '@/components/header'
+import { MatchCard } from '@/components/match-card'
+import { StatsOverview } from '@/components/stats-overview'
+import { Button } from '@/components/ui/button'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 const mockMatches = [
   {
-    id: "1",
-    teamA: "Manchester United",
-    teamB: "Liverpool",
+    id: '1',
+    teamA: 'Manchester United',
+    teamB: 'Liverpool',
     startTime: new Date(Date.now() + 2 * 60 * 60 * 1000),
-    status: "active",
+    status: 'active',
     totalPool: 125000,
     poolA: 75000,
     poolB: 50000,
     odds: { teamA: 1.45, teamB: 2.8 },
   },
   {
-    id: "2",
-    teamA: "Barcelona",
-    teamB: "Real Madrid",
+    id: '2',
+    teamA: 'Barcelona',
+    teamB: 'Real Madrid',
     startTime: new Date(Date.now() + 4 * 60 * 60 * 1000),
-    status: "active",
+    status: 'active',
     totalPool: 98500,
     poolA: 55000,
     poolB: 43500,
     odds: { teamA: 1.92, teamB: 1.95 },
   },
   {
-    id: "3",
-    teamA: "Bayern Munich",
-    teamB: "Borussia Dortmund",
+    id: '3',
+    teamA: 'Bayern Munich',
+    teamB: 'Borussia Dortmund',
     startTime: new Date(Date.now() + 6 * 60 * 60 * 1000),
-    status: "active",
+    status: 'active',
     totalPool: 87200,
     poolA: 52000,
     poolB: 35200,
     odds: { teamA: 1.55, teamB: 2.45 },
   },
   {
-    id: "4",
-    teamA: "PSG",
-    teamB: "Marseille",
+    id: '4',
+    teamA: 'PSG',
+    teamB: 'Marseille',
     startTime: new Date(Date.now() + 8 * 60 * 60 * 1000),
-    status: "active",
+    status: 'active',
     totalPool: 64300,
     poolA: 42000,
     poolB: 22300,
@@ -55,17 +55,15 @@ const mockMatches = [
 ]
 
 export default function Home() {
-  const [selectedTab, setSelectedTab] = useState("active")
+  const [selectedTab, setSelectedTab] = useState('active')
 
   return (
     <div className="min-h-screen bg-background">
       <Header />
 
       <main className="container mx-auto px-4 py-8">
-        {/* Stats Overview */}
         <StatsOverview />
 
-        {/* Matches Section */}
         <div className="mt-12">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-3xl font-bold text-foreground">Soccer Matches</h2>
