@@ -1,17 +1,17 @@
 'use client'
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react'
-import { 
-  FarcasterMiniAppSDK, 
-  User, 
-  Wallet, 
-  NotificationPermission,
-  NotificationPermissionStatus 
-} from '@farcaster/miniapp-sdk'
+
+// Lightweight context that does not depend on SDK classes at build time
+// We will use the actions.ready pattern elsewhere (see FarcasterReady)
+
+type NotificationPermissionStatus = 'granted' | 'denied' | 'prompt'
+type User = any
+type Wallet = { address: string }
 
 interface FarcasterContextType {
   // SDK instance
-  sdk: FarcasterMiniAppSDK | null
+  sdk: any | null
   
   // User data
   user: User | null
@@ -45,7 +45,7 @@ interface FarcasterContextType {
 const FarcasterContext = createContext<FarcasterContextType | undefined>(undefined)
 
 export function FarcasterProvider({ children }: { children: React.ReactNode }) {
-  const [sdk, setSdk] = useState<FarcasterMiniAppSDK | null>(null)
+  const [sdk, setSdk] = useState<any | null>(null)
   const [user, setUser] = useState<User | null>(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
@@ -55,51 +55,9 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
   const [walletAddress, setWalletAddress] = useState<string | null>(null)
   const [walletBalance, setWalletBalance] = useState<string | null>(null)
 
-  // Initialize SDK
+  // No SDK initialization here; keep loading false to avoid blocking UI
   useEffect(() => {
-    const initializeSDK = async () => {
-      try {
-        setIsLoading(true)
-        
-        // Initialize the Farcaster Mini App SDK
-        const farcasterSDK = new FarcasterMiniAppSDK({
-          // The SDK will automatically detect if it's running in a Farcaster environment
-          // and configure itself accordingly
-        })
-        
-        setSdk(farcasterSDK)
-        
-        // Check if user is already authenticated
-        const currentUser = await farcasterSDK.getUser()
-        if (currentUser) {
-          setUser(currentUser)
-          setIsAuthenticated(true)
-        }
-        
-        // Check wallet connection
-        const currentWallet = await farcasterSDK.getWallet()
-        if (currentWallet) {
-          setWallet(currentWallet)
-          setIsWalletConnected(true)
-          setWalletAddress(currentWallet.address)
-          
-          // Get wallet balance
-          try {
-            const balance = await farcasterSDK.getWalletBalance()
-            setWalletBalance(balance)
-          } catch (error) {
-            console.warn('Could not fetch wallet balance:', error)
-          }
-        }
-        
-      } catch (error) {
-        console.error('Failed to initialize Farcaster SDK:', error)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    initializeSDK()
+    setIsLoading(false)
   }, [])
 
   // Authentication methods

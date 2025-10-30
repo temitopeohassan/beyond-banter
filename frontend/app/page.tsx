@@ -6,7 +6,7 @@ import { MatchCard } from '@/components/match-card'
 import { StatsOverview } from '@/components/stats-overview'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { init } from '@farcaster/miniapp-sdk'
+// Farcaster ready is called globally from layout; no SDK init here
 
 const mockMatches = [
   {
@@ -57,35 +57,13 @@ const mockMatches = [
 
 export default function Home() {
   const [selectedTab, setSelectedTab] = useState('active')
-  const [sdkReady, setSdkReady] = useState(false)
-
-  useEffect(() => {
-    async function initializeSDK() {
-      try {
-        const sdk = await init()
-        await sdk.actions.ready()
-        setSdkReady(true)
-        console.log('✅ Farcaster SDK initialized and ready')
-      } catch (err) {
-        console.error('❌ Failed to initialize Farcaster SDK:', err)
-      }
-    }
-
-    initializeSDK()
-  }, [])
+  // No SDK gating; UI renders immediately. Splash will be dismissed by FarcasterReady.
 
   return (
     <div className="min-h-screen bg-background">
       <Header />
 
       <main className="container mx-auto px-4 py-8">
-        {!sdkReady && (
-          <div className="fixed inset-0 flex items-center justify-center bg-background/80 z-50">
-            <p className="text-lg text-muted-foreground">Loading Farcaster Mini App...</p>
-          </div>
-        )}
-
-        {sdkReady && (
           <>
             <StatsOverview />
 
@@ -128,7 +106,6 @@ export default function Home() {
               </Tabs>
             </div>
           </>
-        )}
       </main>
     </div>
   )
