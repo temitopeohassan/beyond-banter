@@ -1,30 +1,22 @@
-'use client'
-
-import type React from 'react'
-import { Geist, Geist_Mono } from 'next/font/google'
-import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
+import { ReactNode } from 'react'
+import { Inter, Geist_Mono } from 'next/font/google'
+import type { Metadata } from 'next'
 
-// Fonts
-const geist = Geist({ subsets: ['latin'] })
+const inter = Inter({ subsets: ['latin'] })
 const geistMono = Geist_Mono({ subsets: ['latin'] })
 
-export const metadata = {
+export const metadata: Metadata = {
   title: 'Beyond Banter - Soccer Prediction Market',
   description:
     'Decentralized soccer prediction market where users stake tokens on match outcomes',
 }
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
-      <body className={`font-sans antialiased ${geist.className} ${geistMono.className}`}>
+      <body className={`${inter.className} ${geistMono.className} min-h-screen bg-background text-foreground`}>
         {children}
-        <Analytics />
       </body>
     </html>
   )
