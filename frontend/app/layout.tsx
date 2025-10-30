@@ -4,6 +4,7 @@ import { Inter, Geist_Mono } from 'next/font/google'
 import type { Metadata } from 'next'
 import { WalletProvider } from '@/lib/wallet-context'
 import { FarcasterProvider } from '@/lib/farcaster-context'
+import { FooterTabs } from '@/components/footer-tabs'
 import { FarcasterReady } from '@/components/farcaster-ready'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -22,7 +23,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <FarcasterReady />
         <FarcasterProvider>
           <WalletProvider>
-            {children}
+            <div className="pb-20">
+              {children}
+            </div>
+            <FooterTabs />
           </WalletProvider>
         </FarcasterProvider>
       </body>
