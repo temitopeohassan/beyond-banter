@@ -1,11 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Header } from '@/components/header'
 import { MatchCard } from '@/components/match-card'
 import { StatsOverview } from '@/components/stats-overview'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { init } from '@farcaster/miniapp-sdk'
 
 const mockMatches = [
   {
@@ -56,52 +57,78 @@ const mockMatches = [
 
 export default function Home() {
   const [selectedTab, setSelectedTab] = useState('active')
+  const [sdkReady, setSdkReady] = useState(false)
+
+  useEffect(() => {
+    async function initializeSDK() {
+      try {
+        const sdk = await init()
+        await sdk.actions.ready()
+        setSdkReady(true)
+        console.log('✅ Farcaster SDK initialized and ready')
+      } catch (err) {
+        console.error('❌ Failed to initialize Farcaster SDK:', err)
+      }
+    }
+
+    initializeSDK()
+  }, [])
 
   return (
     <div className="min-h-screen bg-background">
       <Header />
 
       <main className="container mx-auto px-4 py-8">
-        <StatsOverview />
-
-        <div className="mt-12">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-3xl font-bold text-foreground">Soccer Matches</h2>
-            <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">
-              Create Match
-            </Button>
+        {!sdkReady && (
+          <div className="fixed inset-0 flex items-center justify-center bg-background/80 z-50">
+            <p className="text-lg text-muted-foreground">Loading Farcaster Mini App...</p>
           </div>
+        )}
 
-          <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
-            <TabsList className="grid w-full max-w-md grid-cols-3 bg-muted">
-              <TabsTrigger value="active">Active</TabsTrigger>
-              <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
-              <TabsTrigger value="resolved">Resolved</TabsTrigger>
-            </TabsList>
+        {sdkReady && (
+          <>
+            <StatsOverview />
 
-            <TabsContent value="active" className="mt-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {mockMatches.map((match) => (
-                  <MatchCard key={match.id} match={match} />
-                ))}
+            <div className="mt-12">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-3xl font-bold text-foreground">Soccer Matches</h2>
+                <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">
+                  Create Match
+                </Button>
               </div>
-            </TabsContent>
 
-            <TabsContent value="upcoming" className="mt-6">
-              <div className="text-center py-12">
-                <p className="text-muted-foreground">
-                  No upcoming matches at the moment
-                </p>
-              </div>
-            </TabsContent>
+              <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
+                <TabsList className="grid w-full max-w-md grid-cols-3 bg-muted">
+                  <TabsTrigger value="active">Active</TabsTrigger>
+                  <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
+                  <TabsTrigger value="resolved">Resolved</TabsTrigger>
+                </TabsList>
 
-            <TabsContent value="resolved" className="mt-6">
-              <div className="text-center py-12">
-                <p className="text-muted-foreground">No resolved matches yet</p>
-              </div>
-            </TabsContent>
-          </Tabs>
-        </div>
+                <TabsContent value="active" className="mt-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {mockMatches.map((match) => (
+                      <MatchCard key={match.id} match={match} />
+                    ))}
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="upcoming" className="mt-6">
+                  <div className="text-center py-12">
+                    <p className="text-muted-foreground">
+                      No upcoming matches at the moment
+                    </p>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="resolved" className="mt-6">
+                  <div className="text-center py-12">
+                    <p className="text-muted-foreground">No resolved matches yet</p>
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </div>
+          </>
+        )}
       </main>
     </div>
   )
