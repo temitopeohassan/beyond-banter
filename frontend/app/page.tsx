@@ -57,7 +57,12 @@ const mockMatches = [
 
 export default function Home() {
   const [selectedTab, setSelectedTab] = useState('active')
-  // No SDK gating; UI renders immediately. Splash will be dismissed by FarcasterReady.
+  // Contract Integration:
+  // - Staking buttons are connected to the deployed contract at NEXT_PUBLIC_PREDICTION_MARKET_ADDRESS
+  // - Match data is currently using mock data; to fetch from contract:
+  //   1. Track MatchCreated events to get match IDs
+  //   2. Use useMatchFromContract(matchId) hook to fetch match data
+  //   3. Or use backend API that tracks matches from contract events
 
   return (
     <div className="min-h-screen bg-background">

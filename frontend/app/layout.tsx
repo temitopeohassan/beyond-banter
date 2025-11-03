@@ -4,6 +4,7 @@ import { Inter, Geist_Mono } from 'next/font/google'
 import type { Metadata } from 'next'
 import { WalletProvider } from '@/lib/wallet-context'
 import { FarcasterProvider } from '@/lib/farcaster-context'
+import { ContractProvider } from '@/lib/wagmi-provider'
 import { FooterTabs } from '@/components/footer-tabs'
 import { FarcasterReady } from '@/components/farcaster-ready'
 
@@ -22,12 +23,14 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body className={`${inter.className} ${geistMono.className} min-h-screen bg-background text-foreground`}>
         <FarcasterReady />
         <FarcasterProvider>
-          <WalletProvider>
-            <div className="pb-20">
-              {children}
-            </div>
-            <FooterTabs />
-          </WalletProvider>
+          <ContractProvider>
+            <WalletProvider>
+              <div className="pb-20">
+                {children}
+              </div>
+              <FooterTabs />
+            </WalletProvider>
+          </ContractProvider>
         </FarcasterProvider>
       </body>
     </html>

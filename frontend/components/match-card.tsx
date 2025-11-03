@@ -4,6 +4,9 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Clock } from "lucide-react"
+import { useStake } from "@/lib/contracts/usePredictionMarket"
+import { useAccount } from "wagmi"
+import { useState } from "react"
 
 interface Match {
   id: string
@@ -18,9 +21,22 @@ interface Match {
 }
 
 export function MatchCard({ match }: { match: Match }) {
+  const { address, isConnected } = useAccount()
+  const { stake, isPending } = useStake()
+  const [stakeAmount, setStakeAmount] = useState("10")
   const timeUntilStart = Math.floor((match.startTime.getTime() - Date.now()) / 1000 / 60)
   const poolAPercent = (match.poolA / match.totalPool) * 100
   const poolBPercent = (match.poolB / match.totalPool) * 100
+
+  const handleStake = (outcome: 1 | 2) => {
+    if (!isConnected) return
+    // Convert match.id to bytes32
+    const matchIdBytes32 = match.id.startsWith('0x') 
+      ? match.id as `0x${string}`
+      : `0x${match.id.padStart(64, '0')}` as `0x${string}`
+    
+    stake(matchIdBytes32, outcome, stakeAmount)
+  }
 
   return (
     <Card className="hover:shadow-lg transition-shadow">
@@ -90,17 +106,26 @@ export function MatchCard({ match }: { match: Match }) {
               variant="outline"
               className="border-primary text-primary hover:bg-primary/10 bg-transparent"
               size="sm"
+              onClick={() => handleStake(1)}
+              disabled={!isConnected || isPending || match.status !== 'active'}
             >
-              Stake {match.teamA.split(" ")[0]}
+              {isPending ? 'Staking...' : `Stake ${match.teamA.split(" ")[0]}`}
             </Button>
             <Button
               variant="outline"
               className="border-secondary text-secondary hover:bg-secondary/10 bg-transparent"
               size="sm"
+              onClick={() => handleStake(2)}
+              disabled={!isConnected || isPending || match.status !== 'active'}
             >
-              Stake {match.teamB.split(" ")[0]}
+              {isPending ? 'Staking...' : `Stake ${match.teamB.split(" ")[0]}`}
             </Button>
           </div>
+          {!isConnected && (
+            <p className="text-xs text-muted-foreground text-center mt-2">
+              Connect wallet to stake
+            </p>
+          )}
         </div>
       </CardContent>
     </Card>
