@@ -2,27 +2,35 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { TrendingUp, Users, Zap } from "lucide-react"
+import { type Match } from "@/lib/api"
 
-export function StatsOverview() {
+interface StatsOverviewProps {
+  matches?: Match[]
+}
+
+export function StatsOverview({ matches = [] }: StatsOverviewProps) {
+  const totalVolume = matches.reduce((sum, m) => sum + (m.totalPool || 0), 0)
+  const activeMatches = matches.filter(m => m.status === 'active').length
+
   const stats = [
     {
       title: "Total Volume Staked",
-      value: "$2.4M",
-      change: "+12.5%",
+      value: `$${(totalVolume / 1000).toFixed(1)}K`,
+      change: null as string | null,
       icon: TrendingUp,
       color: "text-primary",
     },
     {
-      title: "Active Users",
-      value: "12,543",
-      change: "+8.2%",
+      title: "Total Matches",
+      value: matches.length.toString(),
+      change: null as string | null,
       icon: Users,
       color: "text-secondary",
     },
     {
       title: "Active Matches",
-      value: "24",
-      change: "+3",
+      value: activeMatches.toString(),
+      change: null as string | null,
       icon: Zap,
       color: "text-accent",
     },
@@ -41,7 +49,7 @@ export function StatsOverview() {
               <div className="flex items-end justify-between">
                 <div>
                   <p className="text-3xl font-bold text-foreground">{stat.value}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{stat.change}</p>
+                  {stat.change && <p className="text-xs text-muted-foreground mt-1">{stat.change}</p>}
                 </div>
                 <Icon className={`w-8 h-8 ${stat.color} opacity-20`} />
               </div>

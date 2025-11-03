@@ -24,7 +24,7 @@ export function MatchCard({ match }: { match: Match }) {
   const { address, isConnected } = useAccount()
   const { stake, isPending } = useStake()
   const [stakeAmount, setStakeAmount] = useState("10")
-  const timeUntilStart = Math.floor((match.startTime.getTime() - Date.now()) / 1000 / 60)
+  const timeUntilStart = Math.max(0, Math.floor((match.startTime.getTime() - Date.now()) / 1000 / 60))
   const poolAPercent = (match.poolA / match.totalPool) * 100
   const poolBPercent = (match.poolB / match.totalPool) * 100
 

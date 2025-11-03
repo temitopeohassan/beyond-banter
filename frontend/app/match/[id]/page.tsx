@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useParams, useRouter } from "next/navigation"
 import { Header } from "@/components/header"
 import { StakingPanel } from "@/components/staking-panel"
 import { MatchDetails } from "@/components/match-details"
@@ -9,57 +10,93 @@ import { RecentStakes } from "@/components/recent-stakes"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
-
-// Mock match data
-const mockMatch = {
-  id: "1",
-  teamA: "Manchester United",
-  teamB: "Liverpool",
-  startTime: new Date(Date.now() + 2 * 60 * 60 * 1000),
-  endTime: new Date(Date.now() + 4 * 60 * 60 * 1000),
-  status: "active",
-  totalPool: 125000,
-  poolA: 75000,
-  poolB: 50000,
-  odds: { teamA: 1.45, teamB: 2.8 },
-  resolved: false,
-  result: null,
-  league: "Premier League",
-  stadium: "Old Trafford",
-  date: "2024-10-20",
-}
-
-const mockStakes = [
-  {
-    id: "1",
-    user: "0x1234...5678",
-    team: "Manchester United",
-    amount: 5000,
-    odds: 1.45,
-    timestamp: Date.now() - 300000,
-  },
-  { id: "2", user: "0x9876...5432", team: "Liverpool", amount: 3000, odds: 2.8, timestamp: Date.now() - 240000 },
-  {
-    id: "3",
-    user: "0x5555...6666",
-    team: "Manchester United",
-    amount: 7500,
-    odds: 1.45,
-    timestamp: Date.now() - 180000,
-  },
-  { id: "4", user: "0x7777...8888", team: "Liverpool", amount: 2000, odds: 2.8, timestamp: Date.now() - 120000 },
-  {
-    id: "5",
-    user: "0x9999...0000",
-    team: "Manchester United",
-    amount: 4200,
-    odds: 1.45,
-    timestamp: Date.now() - 60000,
-  },
-]
+import { getMatch, getStakes, type Match, type Stake } from "@/lib/api"
 
 export default function MatchPage() {
+  const params = useParams()
+  const router = useRouter()
+  const matchId = params.id as string
   const [selectedTeam, setSelectedTeam] = useState<"A" | "B" | null>(null)
+  const [match, setMatch] = useState<Match | null>(null)
+  const [stakes, setStakes] = useState<Stake[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (matchId) {
+      loadMatchData()
+    }
+  }, [matchId])
+
+  const loadMatchData = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const [matchData, stakesData] = await Promise.all([
+        getMatch(matchId),
+        getStakes(matchId),
+      ])
+      setMatch(matchData)
+      setStakes(stakesData)
+    } catch (err: any) {
+      console.error('Failed to load match:', err)
+      setError(err.message || 'Failed to load match')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="container mx-auto px-4 py-8">
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">Loading match...</p>
+          </div>
+        </main>
+      </div>
+    )
+  }
+
+  if (error || !match) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="container mx-auto px-4 py-8">
+          <div className="text-center py-12">
+            <p className="text-destructive">{error || 'Match not found'}</p>
+            <Link href="/">
+              <Button variant="outline" className="mt-4">
+                Back to Markets
+              </Button>
+            </Link>
+          </div>
+        </main>
+      </div>
+    )
+  }
+
+  // Format match for components
+  const formattedMatch = {
+    ...match,
+    startTime: match.startTime instanceof Date ? match.startTime : new Date(match.startTime),
+    endTime: match.endTime ? (match.endTime instanceof Date ? match.endTime : new Date(match.endTime)) : undefined,
+    odds: {
+      teamA: match.poolA > 0 ? match.totalPool / match.poolA : 1,
+      teamB: match.poolB > 0 ? match.totalPool / match.poolB : 1,
+    },
+  }
+
+  // Format stakes for RecentStakes component
+  const formattedStakes = stakes.map((stake) => ({
+    id: stake.id || '',
+    user: stake.userId || 'Unknown',
+    team: stake.outcome === 'teamA' ? match.teamA : match.teamB,
+    amount: stake.amount,
+    odds: stake.outcome === 'teamA' ? formattedMatch.odds.teamA : formattedMatch.odds.teamB,
+    timestamp: stake.timestamp instanceof Date ? stake.timestamp.getTime() : new Date(stake.timestamp).getTime(),
+  }))
 
   return (
     <div className="min-h-screen bg-background">
@@ -75,22 +112,22 @@ export default function MatchPage() {
         </Link>
 
         {/* Match Header */}
-        <MatchDetails match={mockMatch} />
+        <MatchDetails match={formattedMatch} />
 
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
           {/* Left Column - Pool Chart and Stakes */}
           <div className="lg:col-span-2 space-y-8">
             {/* Pool Distribution Chart */}
-            <PoolChart match={mockMatch} />
+            <PoolChart match={formattedMatch} />
 
             {/* Recent Stakes */}
-            <RecentStakes stakes={mockStakes} />
+            <RecentStakes stakes={formattedStakes} />
           </div>
 
           {/* Right Column - Staking Panel */}
           <div>
-            <StakingPanel match={mockMatch} selectedTeam={selectedTeam} onSelectTeam={setSelectedTeam} />
+            <StakingPanel match={formattedMatch} selectedTeam={selectedTeam} onSelectTeam={setSelectedTeam} />
           </div>
         </div>
       </main>

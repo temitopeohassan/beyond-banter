@@ -11,6 +11,22 @@ export function createRouter(db) {
   const matches = db.collection('matches')
   const users = db.collection('users')
 
+  // Get stakes (optionally filtered by matchId)
+  router.get('/', async (req, res, next) => {
+    try {
+      const { matchId } = req.query
+      let query = stakes.orderBy('timestamp', 'desc')
+      if (matchId) {
+        query = query.where('matchId', '==', matchId)
+      }
+      const snap = await query.limit(100).get()
+      const items = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      res.json(items)
+    } catch (e) {
+      next(e)
+    }
+  })
+
   // Create stake and update pools atomically using a transaction
   router.post('/', async (req, res, next) => {
     try {

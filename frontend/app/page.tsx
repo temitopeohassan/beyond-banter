@@ -6,111 +6,132 @@ import { MatchCard } from '@/components/match-card'
 import { StatsOverview } from '@/components/stats-overview'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { getMatches, type Match } from '@/lib/api'
 // Farcaster ready is called globally from layout; no SDK init here
-
-const mockMatches = [
-  {
-    id: '1',
-    teamA: 'Manchester United',
-    teamB: 'Liverpool',
-    startTime: new Date(Date.now() + 2 * 60 * 60 * 1000),
-    status: 'active',
-    totalPool: 125000,
-    poolA: 75000,
-    poolB: 50000,
-    odds: { teamA: 1.45, teamB: 2.8 },
-  },
-  {
-    id: '2',
-    teamA: 'Barcelona',
-    teamB: 'Real Madrid',
-    startTime: new Date(Date.now() + 4 * 60 * 60 * 1000),
-    status: 'active',
-    totalPool: 98500,
-    poolA: 55000,
-    poolB: 43500,
-    odds: { teamA: 1.92, teamB: 1.95 },
-  },
-  {
-    id: '3',
-    teamA: 'Bayern Munich',
-    teamB: 'Borussia Dortmund',
-    startTime: new Date(Date.now() + 6 * 60 * 60 * 1000),
-    status: 'active',
-    totalPool: 87200,
-    poolA: 52000,
-    poolB: 35200,
-    odds: { teamA: 1.55, teamB: 2.45 },
-  },
-  {
-    id: '4',
-    teamA: 'PSG',
-    teamB: 'Marseille',
-    startTime: new Date(Date.now() + 8 * 60 * 60 * 1000),
-    status: 'active',
-    totalPool: 64300,
-    poolA: 42000,
-    poolB: 22300,
-    odds: { teamA: 1.38, teamB: 3.2 },
-  },
-]
 
 export default function Home() {
   const [selectedTab, setSelectedTab] = useState('active')
-  // Contract Integration:
-  // - Staking buttons are connected to the deployed contract at NEXT_PUBLIC_PREDICTION_MARKET_ADDRESS
-  // - Match data is currently using mock data; to fetch from contract:
-  //   1. Track MatchCreated events to get match IDs
-  //   2. Use useMatchFromContract(matchId) hook to fetch match data
-  //   3. Or use backend API that tracks matches from contract events
+  const [matches, setMatches] = useState<Match[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    loadMatches()
+  }, [])
+
+  const loadMatches = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const data = await getMatches()
+      setMatches(data)
+    } catch (err: any) {
+      console.error('Failed to load matches:', err)
+      setError(err.message || 'Failed to load matches')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Filter matches by status
+  const activeMatches = matches.filter(m => m.status === 'active')
+  const upcomingMatches = matches.filter(m => m.status === 'upcoming')
+  const resolvedMatches = matches.filter(m => m.status === 'resolved')
+
+  // Calculate odds for matches
+  const matchesWithOdds = matches.map(match => ({
+    ...match,
+    odds: {
+      teamA: match.poolA > 0 ? match.totalPool / match.poolA : 1,
+      teamB: match.poolB > 0 ? match.totalPool / match.poolB : 1,
+    },
+  }))
 
   return (
     <div className="min-h-screen bg-background">
       <Header />
 
       <main className="container mx-auto px-4 py-8">
-          <>
-            <StatsOverview />
+        <>
+          <StatsOverview matches={matches} />
 
-            <div className="mt-12">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-3xl font-bold text-foreground">Soccer Matches</h2>
-                <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">
-                  Create Match
-                </Button>
+          <div className="mt-12">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-3xl font-bold text-foreground">Soccer Matches</h2>
+            </div>
+
+            {error && (
+              <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+                <p className="text-destructive">{error}</p>
               </div>
+            )}
 
-              <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
-                <TabsList className="grid w-full max-w-md grid-cols-3 bg-muted">
-                  <TabsTrigger value="active">Active</TabsTrigger>
-                  <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
-                  <TabsTrigger value="resolved">Resolved</TabsTrigger>
-                </TabsList>
+            <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
+              <TabsList className="grid w-full max-w-md grid-cols-3 bg-muted">
+                <TabsTrigger value="active">Active</TabsTrigger>
+                <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
+                <TabsTrigger value="resolved">Resolved</TabsTrigger>
+              </TabsList>
 
-                <TabsContent value="active" className="mt-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {mockMatches.map((match) => (
-                      <MatchCard key={match.id} match={match} />
-                    ))}
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="upcoming" className="mt-6">
+              <TabsContent value="active" className="mt-6">
+                {loading ? (
                   <div className="text-center py-12">
-                    <p className="text-muted-foreground">
-                      No upcoming matches at the moment
-                    </p>
+                    <p className="text-muted-foreground">Loading matches...</p>
                   </div>
-                </TabsContent>
+                ) : activeMatches.length === 0 ? (
+                  <div className="text-center py-12">
+                    <p className="text-muted-foreground">No active matches at the moment</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {activeMatches.map((match) => {
+                      const matchWithOdds = matchesWithOdds.find(m => m.id === match.id) || match
+                      return <MatchCard key={match.id} match={{ ...matchWithOdds, startTime: match.startTime instanceof Date ? match.startTime : new Date(match.startTime) }} />
+                    })}
+                  </div>
+                )}
+              </TabsContent>
 
-                <TabsContent value="resolved" className="mt-6">
+              <TabsContent value="upcoming" className="mt-6">
+                {loading ? (
+                  <div className="text-center py-12">
+                    <p className="text-muted-foreground">Loading matches...</p>
+                  </div>
+                ) : upcomingMatches.length === 0 ? (
+                  <div className="text-center py-12">
+                    <p className="text-muted-foreground">No upcoming matches at the moment</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {upcomingMatches.map((match) => {
+                      const matchWithOdds = matchesWithOdds.find(m => m.id === match.id) || match
+                      return <MatchCard key={match.id} match={{ ...matchWithOdds, startTime: match.startTime instanceof Date ? match.startTime : new Date(match.startTime) }} />
+                    })}
+                  </div>
+                )}
+              </TabsContent>
+
+              <TabsContent value="resolved" className="mt-6">
+                {loading ? (
+                  <div className="text-center py-12">
+                    <p className="text-muted-foreground">Loading matches...</p>
+                  </div>
+                ) : resolvedMatches.length === 0 ? (
                   <div className="text-center py-12">
                     <p className="text-muted-foreground">No resolved matches yet</p>
                   </div>
-                </TabsContent>
-              </Tabs>
-            </div>
-          </>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {resolvedMatches.map((match) => {
+                      const matchWithOdds = matchesWithOdds.find(m => m.id === match.id) || match
+                      return <MatchCard key={match.id} match={{ ...matchWithOdds, startTime: match.startTime instanceof Date ? match.startTime : new Date(match.startTime) }} />
+                    })}
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
+          </div>
+        </>
       </main>
     </div>
   )
