@@ -9,6 +9,17 @@ const api = axios.create({
   },
 })
 
+// Add auth token to requests if available
+api.interceptors.request.use((config) => {
+  if (typeof window !== 'undefined') {
+    const token = localStorage.getItem('admin_token')
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
+  }
+  return config
+})
+
 export interface User {
   id?: string
   walletAddress: string
@@ -76,4 +87,26 @@ export const createOracleFeed = (data: OracleFeed) =>
 // Transactions
 export const distributeRewards = (matchId: string) => 
   api.post(`/api/transactions/distribute/${matchId}`).then(r => r.data)
+
+// Authentication
+export interface AuthUser {
+  id: string
+  email: string
+  username: string
+}
+
+export interface LoginResponse {
+  ok: boolean
+  token: string
+  user: AuthUser
+}
+
+export const login = (email: string, password: string) =>
+  api.post<LoginResponse>(`/api/auth/login`, { email, password }).then(r => r.data)
+
+export const logout = () =>
+  api.post(`/api/auth/logout`).then(r => r.data)
+
+export const verifyToken = (token: string) =>
+  api.post<{ ok: boolean; user: AuthUser }>(`/api/auth/verify`, { token }).then(r => r.data.user)
 

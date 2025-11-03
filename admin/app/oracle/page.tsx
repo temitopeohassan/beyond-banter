@@ -4,8 +4,9 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createOracleFeed, getMatches, type Match } from '@/lib/api'
+import { ProtectedRoute } from '@/components/protected-route'
 
-export default function OraclePage() {
+function OraclePage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [matches, setMatches] = useState<Match[]>([])
@@ -173,6 +174,14 @@ export default function OraclePage() {
         )}
       </main>
     </div>
+  )
+}
+
+export default function OraclePageProtected() {
+  return (
+    <ProtectedRoute>
+      <OraclePage />
+    </ProtectedRoute>
   )
 }
 

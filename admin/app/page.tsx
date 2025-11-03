@@ -4,10 +4,13 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { getMatches, getUsers, type Match, type User } from '@/lib/api'
-import { Calendar, Users, Trophy, TrendingUp, Plus } from 'lucide-react'
+import { Calendar, Users, Trophy, TrendingUp, Plus, LogOut } from 'lucide-react'
+import { useAuth } from '@/lib/auth-context'
+import { ProtectedRoute } from '@/components/protected-route'
 
-export default function AdminDashboard() {
+function AdminDashboard() {
   const router = useRouter()
+  const { user, logout } = useAuth()
   const [matches, setMatches] = useState<Match[]>([])
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
@@ -59,7 +62,7 @@ export default function AdminDashboard() {
       <nav className="bg-white border-b">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <h1 className="text-2xl font-bold">Beyond Banter Admin</h1>
-          <div className="flex gap-4">
+          <div className="flex items-center gap-4">
             <Link href="/matches" className="px-4 py-2 hover:bg-gray-100 rounded">
               Matches
             </Link>
@@ -69,6 +72,16 @@ export default function AdminDashboard() {
             <Link href="/oracle" className="px-4 py-2 hover:bg-gray-100 rounded">
               Oracle
             </Link>
+            <div className="flex items-center gap-3 border-l pl-4">
+              <span className="text-sm text-gray-600">{user?.username || user?.email}</span>
+              <button
+                onClick={() => logout()}
+                className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 rounded text-red-600"
+              >
+                <LogOut className="h-4 w-4" />
+                Logout
+              </button>
+            </div>
           </div>
         </div>
       </nav>
@@ -169,6 +182,14 @@ export default function AdminDashboard() {
         </div>
       </main>
     </div>
+  )
+}
+
+export default function AdminDashboardPage() {
+  return (
+    <ProtectedRoute>
+      <AdminDashboard />
+    </ProtectedRoute>
   )
 }
 

@@ -4,8 +4,9 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { getMatches, createMatch, type Match } from '@/lib/api'
 import { Plus } from 'lucide-react'
+import { ProtectedRoute } from '@/components/protected-route'
 
-export default function MatchesPage() {
+function MatchesPage() {
   const [matches, setMatches] = useState<Match[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -113,6 +114,14 @@ export default function MatchesPage() {
         )}
       </main>
     </div>
+  )
+}
+
+export default function MatchesPageProtected() {
+  return (
+    <ProtectedRoute>
+      <MatchesPage />
+    </ProtectedRoute>
   )
 }
 

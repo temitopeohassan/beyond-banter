@@ -4,8 +4,9 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { getMatch, distributeRewards, type Match } from '@/lib/api'
+import { ProtectedRoute } from '@/components/protected-route'
 
-export default function MatchDetailsPage() {
+function MatchDetailsPage() {
   const params = useParams()
   const router = useRouter()
   const [match, setMatch] = useState<Match | null>(null)
@@ -139,6 +140,14 @@ export default function MatchDetailsPage() {
         </div>
       </main>
     </div>
+  )
+}
+
+export default function MatchDetailsPageProtected() {
+  return (
+    <ProtectedRoute>
+      <MatchDetailsPage />
+    </ProtectedRoute>
   )
 }
 

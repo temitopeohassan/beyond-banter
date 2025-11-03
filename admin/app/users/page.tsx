@@ -3,8 +3,9 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { getUsers, type User } from '@/lib/api'
+import { ProtectedRoute } from '@/components/protected-route'
 
-export default function UsersPage() {
+function UsersPage() {
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -77,6 +78,14 @@ export default function UsersPage() {
         )}
       </main>
     </div>
+  )
+}
+
+export default function UsersPageProtected() {
+  return (
+    <ProtectedRoute>
+      <UsersPage />
+    </ProtectedRoute>
   )
 }
 

@@ -4,8 +4,9 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createMatch, type Match } from '@/lib/api'
+import { ProtectedRoute } from '@/components/protected-route'
 
-export default function NewMatchPage() {
+function NewMatchPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
@@ -124,6 +125,14 @@ export default function NewMatchPage() {
         </form>
       </main>
     </div>
+  )
+}
+
+export default function NewMatchPageProtected() {
+  return (
+    <ProtectedRoute>
+      <NewMatchPage />
+    </ProtectedRoute>
   )
 }
 

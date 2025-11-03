@@ -8,6 +8,7 @@ import { createRouter as createMatches } from './src/routes/matches.js'
 import { createRouter as createStakes } from './src/routes/stakes.js'
 import { createRouter as createOracle } from './src/routes/oracle.js'
 import { createRouter as createTxns } from './src/routes/transactions.js'
+import { createRouter as createAuth } from './src/routes/auth.js'
 
 const app = express()
 
@@ -39,6 +40,7 @@ try {
 
 // Routers
 if (db) {
+  app.use('/api/auth', createAuth(db))
   app.use('/api/users', createUsers(db))
   app.use('/api/matches', createMatches(db))
   app.use('/api/stakes', createStakes(db))
