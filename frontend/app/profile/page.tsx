@@ -1,7 +1,9 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { Header } from "@/components/header"
 import { useWallet } from "@/lib/wallet-context"
+import { useAccount } from "wagmi"
 import { ProfileHeader } from "@/components/profile-header"
 import { ProfileStats } from "@/components/profile-stats"
 import { PerformanceMetrics } from "@/components/performance-metrics"
@@ -9,42 +11,127 @@ import { LeagueRankings } from "@/components/league-rankings"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
-
-// Mock user profile data
-const mockUserProfile = {
-  username: "SoccerPro42",
-  joinDate: new Date("2024-01-15"),
-  totalMatches: 32,
-  totalStaked: 125000,
-  totalEarned: 34500,
-  totalReturned: 159500,
-  roi: 27.6,
-  winRate: 0.688,
-  averageOdds: 1.72,
-  bestWin: 15000,
-  longestWinStreak: 7,
-  currentStreak: 3,
-  favoriteLeague: "Premier League",
-  favoriteTeam: "Manchester United",
-}
-
-const mockLeagueStats = [
-  { league: "Premier League", matches: 12, wins: 9, roi: 32.5 },
-  { league: "La Liga", matches: 8, wins: 5, roi: 18.2 },
-  { league: "Serie A", matches: 7, wins: 4, roi: 22.1 },
-  { league: "Bundesliga", matches: 5, wins: 3, roi: 15.8 },
-]
-
-const mockRankings = [
-  { rank: 1, username: "CryptoKing", totalEarned: 125000, roi: 45.2 },
-  { rank: 2, username: "GoalMaster", totalEarned: 98500, roi: 38.1 },
-  { rank: 3, username: "SoccerPro42", totalEarned: 34500, roi: 27.6 },
-  { rank: 4, username: "PredictorX", totalEarned: 28300, roi: 24.5 },
-  { rank: 5, username: "BetWizard", totalEarned: 22100, roi: 19.8 },
-]
+import { getUserByWallet, getLeaderboard, getStakes, getMatches, type User, type Stake, type Match } from "@/lib/api"
 
 export default function ProfilePage() {
-  const { isConnected, address } = useWallet()
+  const { isConnected } = useWallet()
+  const { address } = useAccount()
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [userProfile, setUserProfile] = useState<User | null>(null)
+  const [leaderboard, setLeaderboard] = useState<User[]>([])
+  const [userRank, setUserRank] = useState<number | null>(null)
+  const [profileStats, setProfileStats] = useState({
+    totalMatches: 0,
+    totalStaked: 0,
+    totalEarned: 0,
+    totalReturned: 0,
+    roi: 0,
+    winRate: 0,
+    averageOdds: 0,
+    bestWin: 0,
+    longestWinStreak: 0,
+    currentStreak: 0,
+  })
+
+  useEffect(() => {
+    if (isConnected && address) {
+      loadProfileData()
+    } else {
+      setLoading(false)
+    }
+  }, [isConnected, address])
+
+  const loadProfileData = async () => {
+    if (!address) return
+
+    try {
+      setLoading(true)
+      setError(null)
+
+      // Fetch user data, leaderboard, stakes, and matches in parallel
+      const [userData, leaderboardData, allStakes, allMatches] = await Promise.all([
+        getUserByWallet(address).catch(() => null),
+        getLeaderboard(100),
+        getStakes(),
+        getMatches(),
+      ])
+
+      setUserProfile(userData)
+      setLeaderboard(leaderboardData)
+
+      // Find user's rank in leaderboard
+      const userRankIndex = leaderboardData.findIndex((u: User) => u.walletAddress?.toLowerCase() === address.toLowerCase())
+      setUserRank(userRankIndex >= 0 ? userRankIndex + 1 : null)
+
+      // Filter user's stakes and calculate stats
+      const userStakes = allStakes.filter((s: Stake) => s.userId === address)
+
+      // Calculate profile stats
+      const totalMatches = userStakes.length
+      const totalStaked = userData?.totalStaked || userStakes.reduce((sum, s) => sum + s.amount, 0)
+      const totalEarned = userData?.totalEarned || 0
+      const totalReturned = totalStaked + totalEarned
+      const roi = totalStaked > 0 ? (totalEarned / totalStaked) * 100 : 0
+
+      // Calculate win rate and other stats from resolved matches
+      const resolvedStakes = userStakes.filter((s: Stake) => {
+        const match = allMatches.find((m: Match) => m.id === s.matchId)
+        return match && match.status === 'resolved'
+      })
+
+      const wonStakes = resolvedStakes.filter((s: Stake) => {
+        const match = allMatches.find((m: Match) => m.id === s.matchId)
+        return match && match.result === s.outcome
+      })
+
+      const winRate = resolvedStakes.length > 0 ? wonStakes.length / resolvedStakes.length : 0
+
+      // Calculate average odds
+      const totalOdds = userStakes.reduce((sum, s) => {
+        const match = allMatches.find((m: Match) => m.id === s.matchId)
+        if (!match) return sum
+        const odds = s.outcome === 'teamA'
+          ? (match.poolA > 0 ? match.totalPool / match.poolA : 1)
+          : (match.poolB > 0 ? match.totalPool / match.poolB : 1)
+        return sum + odds
+      }, 0)
+      const averageOdds = userStakes.length > 0 ? totalOdds / userStakes.length : 0
+
+      // Calculate best win and streaks
+      const wins = wonStakes.map((s: Stake) => {
+        const match = allMatches.find((m: Match) => m.id === s.matchId)
+        if (!match) return 0
+        const odds = s.outcome === 'teamA'
+          ? (match.poolA > 0 ? match.totalPool / match.poolA : 1)
+          : (match.poolB > 0 ? match.totalPool / match.poolB : 1)
+        return s.amount * odds
+      })
+      const bestWin = wins.length > 0 ? Math.max(...wins) : 0
+
+      // Calculate streaks (simplified - would need match dates sorted)
+      const longestWinStreak = 0 // TODO: Calculate from match history
+      const currentStreak = 0 // TODO: Calculate from recent matches
+
+      setProfileStats({
+        totalMatches,
+        totalStaked,
+        totalEarned,
+        totalReturned,
+        roi,
+        winRate,
+        averageOdds,
+        bestWin,
+        longestWinStreak,
+        currentStreak,
+      })
+    } catch (err: any) {
+      console.error('Failed to load profile:', err)
+      setError(err.message || 'Failed to load profile data')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   if (!isConnected) {
     return (
@@ -63,6 +150,43 @@ export default function ProfilePage() {
     )
   }
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="container mx-auto px-4 py-8">
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">Loading profile...</p>
+          </div>
+        </main>
+      </div>
+    )
+  }
+
+  // Format leaderboard for display
+  const formattedRankings = leaderboard.slice(0, 10).map((user, index) => ({
+    rank: index + 1,
+    username: user.username || user.walletAddress?.slice(0, 8) || 'Unknown',
+    totalEarned: user.totalEarned || 0,
+    roi: user.totalStaked > 0 ? ((user.totalEarned || 0) / user.totalStaked) * 100 : 0,
+  }))
+
+  // Mock league stats for now (could be enhanced with real league data)
+  const leagueStats = [
+    { league: "Premier League", matches: 0, wins: 0, roi: 0 },
+    { league: "La Liga", matches: 0, wins: 0, roi: 0 },
+    { league: "Serie A", matches: 0, wins: 0, roi: 0 },
+    { league: "Bundesliga", matches: 0, wins: 0, roi: 0 },
+  ]
+
+  const profileData = {
+    username: userProfile?.username || address?.slice(0, 8) || 'User',
+    joinDate: userProfile ? new Date() : new Date(), // TODO: Add joinDate to user schema
+    ...profileStats,
+    favoriteLeague: "Premier League", // Mock
+    favoriteTeam: "Unknown", // Mock
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -76,22 +200,28 @@ export default function ProfilePage() {
           </Button>
         </Link>
 
+        {error && (
+          <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+            <p className="text-destructive">{error}</p>
+          </div>
+        )}
+
         {/* Profile Header */}
-        <ProfileHeader profile={mockUserProfile} address={address} />
+        <ProfileHeader profile={profileData} address={address || ''} />
 
         {/* Profile Stats */}
-        <ProfileStats profile={mockUserProfile} />
+        <ProfileStats profile={profileData} />
 
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-12">
           {/* Left Column - Performance Metrics */}
           <div className="lg:col-span-2">
-            <PerformanceMetrics leagueStats={mockLeagueStats} />
+            <PerformanceMetrics leagueStats={leagueStats} />
           </div>
 
           {/* Right Column - League Rankings */}
           <div>
-            <LeagueRankings rankings={mockRankings} userRank={3} />
+            <LeagueRankings rankings={formattedRankings} userRank={userRank} />
           </div>
         </div>
       </main>

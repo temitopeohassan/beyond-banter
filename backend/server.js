@@ -15,6 +15,11 @@ app.use(cors({ origin: (process.env.ALLOWED_ORIGINS || '').split(',').filter(Boo
 app.use(express.json())
 app.use(morgan('dev'))
 
+// Default route
+app.get('/', (_req, res) => {
+  res.send('<h1>Welcome To Beyond Banter API</h1>')
+})
+
 // Health
 app.get('/health', (_req, res) => res.json({ ok: true }))
 

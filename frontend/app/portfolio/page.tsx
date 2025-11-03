@@ -1,112 +1,168 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Header } from "@/components/header"
 import { PortfolioOverview } from "@/components/portfolio-overview"
 import { PortfolioChart } from "@/components/portfolio-chart"
 import { StakesTable } from "@/components/stakes-table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-
-// Mock portfolio data
-const mockPortfolioData = {
-  totalStaked: 45000,
-  totalEarned: 12500,
-  totalReturned: 57500,
-  roi: 27.8,
-  activeStakes: 8,
-  resolvedStakes: 24,
-  winRate: 0.667,
-}
-
-const mockActiveStakes = [
-  {
-    id: "1",
-    matchId: "1",
-    teamA: "Manchester United",
-    teamB: "Liverpool",
-    stakedTeam: "Manchester United",
-    amount: 5000,
-    odds: 1.45,
-    potentialWinnings: 7250,
-    status: "active",
-    placedAt: new Date(Date.now() - 30 * 60 * 1000),
-    matchTime: new Date(Date.now() + 90 * 60 * 1000),
-  },
-  {
-    id: "2",
-    matchId: "2",
-    teamA: "Barcelona",
-    teamB: "Real Madrid",
-    stakedTeam: "Real Madrid",
-    amount: 3500,
-    odds: 1.95,
-    potentialWinnings: 6825,
-    status: "active",
-    placedAt: new Date(Date.now() - 45 * 60 * 1000),
-    matchTime: new Date(Date.now() + 210 * 60 * 1000),
-  },
-  {
-    id: "3",
-    matchId: "3",
-    teamA: "Bayern Munich",
-    teamB: "Borussia Dortmund",
-    stakedTeam: "Bayern Munich",
-    amount: 7500,
-    odds: 1.55,
-    potentialWinnings: 11625,
-    status: "active",
-    placedAt: new Date(Date.now() - 60 * 60 * 1000),
-    matchTime: new Date(Date.now() + 330 * 60 * 1000),
-  },
-]
-
-const mockResolvedStakes = [
-  {
-    id: "4",
-    matchId: "4",
-    teamA: "PSG",
-    teamB: "Marseille",
-    stakedTeam: "PSG",
-    amount: 4000,
-    odds: 1.38,
-    potentialWinnings: 5520,
-    actualWinnings: 5520,
-    status: "won",
-    placedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-    resolvedAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000),
-  },
-  {
-    id: "5",
-    matchId: "5",
-    teamA: "Juventus",
-    teamB: "AC Milan",
-    stakedTeam: "AC Milan",
-    amount: 3000,
-    odds: 2.1,
-    potentialWinnings: 6300,
-    actualWinnings: 0,
-    status: "lost",
-    placedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-    resolvedAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000),
-  },
-  {
-    id: "6",
-    matchId: "6",
-    teamA: "Chelsea",
-    teamB: "Arsenal",
-    stakedTeam: "Chelsea",
-    amount: 6000,
-    odds: 1.72,
-    potentialWinnings: 10320,
-    actualWinnings: 10320,
-    status: "won",
-    placedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
-    resolvedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-  },
-]
+import { useWallet } from "@/lib/wallet-context"
+import { getStakes, getMatches, getUserByWallet, type Stake, type Match } from "@/lib/api"
+import { useAccount } from "wagmi"
 
 export default function PortfolioPage() {
   const [selectedTab, setSelectedTab] = useState("overview")
+  const { address, isConnected } = useAccount()
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [portfolioData, setPortfolioData] = useState({
+    totalStaked: 0,
+    totalEarned: 0,
+    totalReturned: 0,
+    roi: 0,
+    activeStakes: 0,
+    resolvedStakes: 0,
+    winRate: 0,
+  })
+  const [activeStakes, setActiveStakes] = useState<any[]>([])
+  const [resolvedStakes, setResolvedStakes] = useState<any[]>([])
+
+  useEffect(() => {
+    if (isConnected && address) {
+      loadPortfolioData()
+    } else {
+      setLoading(false)
+    }
+  }, [isConnected, address])
+
+  const loadPortfolioData = async () => {
+    if (!address) return
+
+    try {
+      setLoading(true)
+      setError(null)
+
+      // Fetch user data, stakes, and matches in parallel
+      const [userData, allStakes, allMatches] = await Promise.all([
+        getUserByWallet(address).catch(() => null), // User might not exist yet
+        getStakes(),
+        getMatches(),
+      ])
+
+      // Filter stakes for current user
+      const userStakes = allStakes.filter((s: Stake) => s.userId === address)
+
+      // Separate active and resolved stakes
+      const active = userStakes.filter((s: Stake) => {
+        const match = allMatches.find((m: Match) => m.id === s.matchId)
+        return match && match.status === 'active'
+      })
+
+      const resolved = userStakes.filter((s: Stake) => {
+        const match = allMatches.find((m: Match) => m.id === s.matchId)
+        return match && match.status === 'resolved'
+      })
+
+      // Calculate portfolio stats
+      const totalStaked = userData?.totalStaked || userStakes.reduce((sum, s) => sum + s.amount, 0)
+      const totalEarned = userData?.totalEarned || 0
+      const totalReturned = totalStaked + totalEarned
+      const roi = totalStaked > 0 ? (totalEarned / totalStaked) * 100 : 0
+
+      // Calculate win rate from resolved stakes
+      const wonStakes = resolved.filter(s => {
+        const match = allMatches.find((m: Match) => m.id === s.matchId)
+        return match && match.result === s.outcome
+      })
+
+      const winRate = resolved.length > 0 ? wonStakes.length / resolved.length : 0
+
+      setPortfolioData({
+        totalStaked,
+        totalEarned,
+        totalReturned,
+        roi,
+        activeStakes: active.length,
+        resolvedStakes: resolved.length,
+        winRate,
+      })
+
+      // Format stakes with match data for display
+      const formatStakes = (stakes: Stake[], matches: Match[]) => {
+        return stakes.map((stake: Stake) => {
+          const match = matches.find((m: Match) => m.id === stake.matchId)
+          if (!match) return null
+
+          const odds = stake.outcome === 'teamA'
+            ? (match.poolA > 0 ? match.totalPool / match.poolA : 1)
+            : (match.poolB > 0 ? match.totalPool / match.poolB : 1)
+
+          const potentialWinnings = stake.amount * odds
+          const actualWinnings = match.status === 'resolved' && match.result === stake.outcome
+            ? potentialWinnings
+            : (match.status === 'resolved' ? 0 : undefined)
+
+          return {
+            id: stake.id || '',
+            matchId: stake.matchId,
+            teamA: match.teamA,
+            teamB: match.teamB,
+            stakedTeam: stake.outcome === 'teamA' ? match.teamA : match.teamB,
+            amount: stake.amount,
+            odds,
+            potentialWinnings,
+            actualWinnings,
+            status: match.status === 'resolved' 
+              ? (match.result === stake.outcome ? 'won' : 'lost')
+              : 'active',
+            placedAt: stake.timestamp instanceof Date ? stake.timestamp : new Date(stake.timestamp),
+            matchTime: match.startTime instanceof Date ? match.startTime : new Date(match.startTime),
+            resolvedAt: match.status === 'resolved' && match.endTime
+              ? (match.endTime instanceof Date ? match.endTime : new Date(match.endTime))
+              : undefined,
+          }
+        }).filter(Boolean)
+      }
+
+      const formattedActive = formatStakes(active, allMatches)
+      const formattedResolved = formatStakes(resolved, allMatches)
+
+      setActiveStakes(formattedActive)
+      setResolvedStakes(formattedResolved)
+    } catch (err: any) {
+      console.error('Failed to load portfolio:', err)
+      setError(err.message || 'Failed to load portfolio data')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (!isConnected) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="container mx-auto px-4 py-8">
+          <div className="text-center py-20">
+            <h2 className="text-2xl font-bold text-foreground mb-4">Connect Your Wallet</h2>
+            <p className="text-muted-foreground mb-6">Please connect your wallet to view your portfolio</p>
+          </div>
+        </main>
+      </div>
+    )
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="container mx-auto px-4 py-8">
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">Loading portfolio...</p>
+          </div>
+        </main>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -119,8 +175,14 @@ export default function PortfolioPage() {
           <p className="text-muted-foreground">Track your stakes, earnings, and performance</p>
         </div>
 
+        {error && (
+          <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+            <p className="text-destructive">{error}</p>
+          </div>
+        )}
+
         {/* Portfolio Overview */}
-        <PortfolioOverview data={mockPortfolioData} />
+        <PortfolioOverview data={portfolioData} />
 
         {/* Tabs */}
         <Tabs value={selectedTab} onValueChange={setSelectedTab} className="mt-12">
@@ -137,12 +199,24 @@ export default function PortfolioPage() {
 
           {/* Active Stakes Tab */}
           <TabsContent value="active" className="mt-6">
-            <StakesTable stakes={mockActiveStakes} type="active" />
+            {activeStakes.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">No active stakes</p>
+              </div>
+            ) : (
+              <StakesTable stakes={activeStakes} type="active" />
+            )}
           </TabsContent>
 
           {/* History Tab */}
           <TabsContent value="history" className="mt-6">
-            <StakesTable stakes={mockResolvedStakes} type="resolved" />
+            {resolvedStakes.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">No stake history</p>
+              </div>
+            ) : (
+              <StakesTable stakes={resolvedStakes} type="resolved" />
+            )}
           </TabsContent>
         </Tabs>
       </main>

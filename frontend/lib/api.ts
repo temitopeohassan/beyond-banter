@@ -60,7 +60,10 @@ export function normalizeMatch(match: Match): Match {
 
 // Users
 export const getUsers = () => api.get<User[]>(`/api/users`).then(r => r.data)
+export const getLeaderboard = (limit?: number) => 
+  api.get<User[]>(`/api/users?leaderboard=true&limit=${limit || 100}`).then(r => r.data)
 export const getUser = (id: string) => api.get<User>(`/api/users/${id}`).then(r => r.data)
+export const getUserByWallet = (walletAddress: string) => api.get<User>(`/api/users/${walletAddress}`).then(r => r.data)
 export const createUser = (data: Omit<User, 'id'>) => api.post<User>(`/api/users`, data).then(r => r.data)
 
 // Matches

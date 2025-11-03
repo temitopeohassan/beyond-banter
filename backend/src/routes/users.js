@@ -9,9 +9,17 @@ export function createRouter(db) {
   }
   const col = db.collection('users')
 
-  router.get('/', async (_req, res, next) => {
+  router.get('/', async (req, res, next) => {
     try {
-      const snap = await col.limit(1000).get()
+      const { leaderboard, limit = '1000' } = req.query
+      let query = col.limit(Number(limit))
+      
+      // If leaderboard is requested, order by totalEarned descending
+      if (leaderboard === 'true') {
+        query = col.orderBy('totalEarned', 'desc').limit(Number(limit) || 100)
+      }
+      
+      const snap = await query.get()
       const items = snap.docs.map(d => ({ id: d.id, ...d.data() }))
       res.json(items)
     } catch (e) { next(e) }
