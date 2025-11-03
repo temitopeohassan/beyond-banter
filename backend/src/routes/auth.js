@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import admin from 'firebase-admin'
+import bcrypt from 'bcrypt'
 import { createCustomToken } from '../services/auth.js'
 
 export function createRouter(db) {
@@ -29,8 +30,9 @@ export function createRouter(db) {
       const adminDoc = adminQuery.docs[0]
       const adminData = adminDoc.data()
 
-      // Verify password (simple comparison for now - should use bcrypt in production)
-      if (adminData.password !== password) {
+      // Verify password with bcrypt
+      const isPasswordValid = await bcrypt.compare(password, adminData.password)
+      if (!isPasswordValid) {
         return res.status(401).json({ error: 'Invalid email or password' })
       }
 
@@ -61,11 +63,47 @@ export function createRouter(db) {
         return res.status(400).json({ error: 'Token is required' })
       }
 
-      // Verify the token with Firebase Admin
-      const decodedToken = await admin.auth().verifyIdToken(token)
+      let uid
+      
+      // Try to verify with Firebase Admin first
+      try {
+        const decodedToken = await admin.auth().verifyIdToken(token)
+        uid = decodedToken.uid
+      } catch (authError) {
+        // If Firebase Auth is not configured, verify our simple token
+        if (authError.code === 'auth/configuration-not-found' || authError.code === 'auth/invalid-id-token') {
+          try {
+            const crypto = await import('crypto')
+            const secret = process.env.AUTH_SECRET || 'beyond-banter-admin-secret-change-in-production'
+            const decoded = Buffer.from(token, 'base64').toString('utf-8')
+            const [payload, signature] = decoded.split(':')
+            
+            // Verify signature
+            const expectedSignature = crypto.createHmac('sha256', secret).update(payload).digest('hex')
+            if (signature !== expectedSignature) {
+              return res.status(401).json({ error: 'Invalid token signature' })
+            }
+            
+            // Extract uid from payload (format: uid:timestamp)
+            const [tokenUid, timestamp] = payload.split(':')
+            uid = tokenUid
+            
+            // Check if token is expired (24 hours)
+            const tokenAge = Date.now() - parseInt(timestamp, 10)
+            const maxAge = 24 * 60 * 60 * 1000 // 24 hours
+            if (tokenAge > maxAge) {
+              return res.status(401).json({ error: 'Token expired' })
+            }
+          } catch (tokenError) {
+            return res.status(401).json({ error: 'Invalid token format' })
+          }
+        } else {
+          return res.status(401).json({ error: 'Invalid or expired token' })
+        }
+      }
       
       // Get user from admins collection
-      const adminDoc = await db.collection('admins').doc(decodedToken.uid).get()
+      const adminDoc = await db.collection('admins').doc(uid).get()
       
       if (!adminDoc.exists) {
         return res.status(401).json({ error: 'Admin not found' })
@@ -76,15 +114,12 @@ export function createRouter(db) {
       res.json({
         ok: true,
         user: {
-          id: decodedToken.uid,
+          id: uid,
           email: adminData.email,
           username: adminData.username || adminData.email,
         },
       })
     } catch (e) {
-      if (e.code === 'auth/id-token-expired' || e.code === 'auth/invalid-id-token') {
-        return res.status(401).json({ error: 'Invalid or expired token' })
-      }
       next(e)
     }
   })
