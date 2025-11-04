@@ -7,6 +7,15 @@ import { StatsOverview } from '@/components/stats-overview'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { getMatches, type Match } from '@/lib/api'
+
+// Extended Match type with odds for MatchCard component
+type MatchWithOdds = Match & {
+  startTime: Date
+  odds: {
+    teamA: number
+    teamB: number
+  }
+}
 // Farcaster ready is called globally from layout; no SDK init here
 
 export default function Home() {
@@ -33,25 +42,37 @@ export default function Home() {
     }
   }
 
-  // Filter matches by status
-  const activeMatches = matches.filter(m => m.status === 'active')
-  const upcomingMatches = matches.filter(m => m.status === 'upcoming')
-  const resolvedMatches = matches.filter(m => m.status === 'resolved')
+  // Helper function to convert Firestore timestamp to Date
+  const toDate = (value: Date | string | { seconds?: number; nanoseconds?: number } | undefined): Date => {
+    if (!value) return new Date()
+    if (value instanceof Date) return value
+    if (typeof value === 'string') return new Date(value)
+    if (typeof value === 'object' && 'seconds' in value && value.seconds) {
+      return new Date(value.seconds * 1000)
+    }
+    return new Date()
+  }
 
-  // Calculate odds for matches
-  const matchesWithOdds = matches.map(match => ({
+  // Calculate odds for matches and normalize dates
+  const matchesWithOdds: MatchWithOdds[] = matches.map(match => ({
     ...match,
+    startTime: toDate(match.startTime),
     odds: {
       teamA: match.poolA > 0 ? match.totalPool / match.poolA : 1,
       teamB: match.poolB > 0 ? match.totalPool / match.poolB : 1,
     },
   }))
 
+  // Filter matches by status (after adding odds)
+  const activeMatches = matchesWithOdds.filter(m => m.status === 'active')
+  const upcomingMatches = matchesWithOdds.filter(m => m.status === 'upcoming')
+  const resolvedMatches = matchesWithOdds.filter(m => m.status === 'resolved')
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
 
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-8 pt-20">
         <>
           <StatsOverview matches={matches} />
 
@@ -84,10 +105,9 @@ export default function Home() {
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {activeMatches.map((match) => {
-                      const matchWithOdds = matchesWithOdds.find(m => m.id === match.id) || match
-                      return <MatchCard key={match.id} match={{ ...matchWithOdds, startTime: match.startTime instanceof Date ? match.startTime : new Date(match.startTime) }} />
-                    })}
+                    {activeMatches.map((match) => (
+                      <MatchCard key={match.id} match={match} />
+                    ))}
                   </div>
                 )}
               </TabsContent>
@@ -103,10 +123,9 @@ export default function Home() {
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {upcomingMatches.map((match) => {
-                      const matchWithOdds = matchesWithOdds.find(m => m.id === match.id) || match
-                      return <MatchCard key={match.id} match={{ ...matchWithOdds, startTime: match.startTime instanceof Date ? match.startTime : new Date(match.startTime) }} />
-                    })}
+                    {upcomingMatches.map((match) => (
+                      <MatchCard key={match.id} match={match} />
+                    ))}
                   </div>
                 )}
               </TabsContent>
@@ -122,10 +141,9 @@ export default function Home() {
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {resolvedMatches.map((match) => {
-                      const matchWithOdds = matchesWithOdds.find(m => m.id === match.id) || match
-                      return <MatchCard key={match.id} match={{ ...matchWithOdds, startTime: match.startTime instanceof Date ? match.startTime : new Date(match.startTime) }} />
-                    })}
+                    {resolvedMatches.map((match) => (
+                      <MatchCard key={match.id} match={match} />
+                    ))}
                   </div>
                 )}
               </TabsContent>

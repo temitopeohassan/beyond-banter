@@ -2,10 +2,12 @@
 
 import { useEffect } from "react"
 import { useWallet } from "@/lib/wallet-context"
+import { useFarcaster } from "@/lib/farcaster-context"
 import Link from "next/link"
 
 export function Header() {
   const { isConnected, isConnecting, connectWallet, address } = useWallet()
+  const farcaster = useFarcaster()
 
   // Auto-connect when running inside Farcaster
   useEffect(() => {
@@ -23,8 +25,11 @@ export function Header() {
     return () => cancelAnimationFrame(id)
   }, [isConnected, isConnecting, connectWallet])
 
+  // Use Farcaster wallet address as fallback if wallet context hasn't synced yet
+  const displayAddress = address || farcaster.walletAddress
+
   return (
-    <header className="border-b border-border bg-card">
+    <header className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
       <div className="container mx-auto px-4 py-4 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
           <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
@@ -36,9 +41,9 @@ export function Header() {
         {/* Top navigation removed; replaced by a fixed footer tab bar */}
 
         {/* Connected wallet (concatenated) */}
-        {isConnected && address ? (
+        {(isConnected || farcaster.isWalletConnected) && displayAddress ? (
           <span className="font-mono text-sm text-muted-foreground">
-            {address.slice(0, 6)}...{address.slice(-4)}
+            {displayAddress.slice(0, 6)}...{displayAddress.slice(-4)}
           </span>
         ) : null}
       </div>

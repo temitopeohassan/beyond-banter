@@ -19,9 +19,9 @@ npm install
 npm run build
 ```
 
-3. Deploy to Celo mainnet:
+3. Deploy to Base mainnet:
 ```bash
-npx hardhat run scripts/deploy.ts --network celo
+npx hardhat run scripts/deploy.ts --network base
 ```
 
 For local testing:
@@ -35,3 +35,11 @@ npm run deploy
 - Rewards follow: `(userStake / totalWinningPool) * (totalPool * (1 - platformFee))`.
 - Draw payouts not implemented (as per scope).
 - For production, set a real USDC address and fee recipient.
+
+
+
+Save this address for your frontend .env:
+NEXT_PUBLIC_PREDICTION_MARKET_ADDRESS=0xd8d5EC59A5e28Df6e9c1A5DAf5dC82F38Aea6442
+~/beyond-banter/contracts>
+
+

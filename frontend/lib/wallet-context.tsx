@@ -3,6 +3,8 @@
 import type React from "react"
 import { createContext, useContext, useState, useCallback, useEffect } from "react"
 import { useFarcaster } from './farcaster-context'
+import { useAccount, useConnect, useDisconnect, useBalance } from 'wagmi'
+// Don't import useAppKit directly - we'll use dynamic import to avoid SSR issues
 
 interface WalletContextType {
   isConnected: boolean
@@ -19,99 +21,129 @@ interface WalletContextType {
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined)
 
+// Helper to check if we're inside Farcaster
+function isInsideFarcaster(): boolean {
+  if (typeof window === 'undefined') return false
+  return !!(window as any).farcaster
+}
+
 export function WalletProvider({ children }: { children: React.ReactNode }) {
-  const [isConnected, setIsConnected] = useState(false)
-  const [address, setAddress] = useState<string | null>(null)
-  const [balance, setBalance] = useState(0)
   const [isConnecting, setIsConnecting] = useState(false)
   
   // Farcaster integration
   const farcaster = useFarcaster()
   const [isFarcasterWallet, setIsFarcasterWallet] = useState(false)
   const [farcasterUser, setFarcasterUser] = useState<any | null>(null)
+  
+  // Wagmi hooks for external wallet connections
+  const { address: wagmiAddress, isConnected: wagmiConnected, connector } = useAccount()
+  const { connect, connectors, isPending: wagmiPending } = useConnect()
+  const { disconnect } = useDisconnect()
+  const { data: wagmiBalance } = useBalance({ address: wagmiAddress })
+  
+  // Determine if we're inside Farcaster
+  const isInFarcaster = isInsideFarcaster()
+  
+  // Access AppKit without using the hook to avoid SSR issues
+  const [appKitOpen, setAppKitOpen] = useState<(() => void) | null>(null)
+  const [isClient, setIsClient] = useState(false)
+  
+  useEffect(() => {
+    setIsClient(true)
+    // Access AppKit instance from window (set by AppKitProvider)
+    if (!isInFarcaster && typeof window !== 'undefined') {
+      const appKitInstance = (window as any).__REOWN_APPKIT_INSTANCE__
+      if (appKitInstance && appKitInstance.open) {
+        setAppKitOpen(() => appKitInstance.open.bind(appKitInstance))
+      }
+    }
+  }, [isInFarcaster])
+  
+  // Determine connection state and address
+  const isConnected = isInFarcaster 
+    ? farcaster.isWalletConnected 
+    : wagmiConnected
+  const address = isInFarcaster
+    ? farcaster.walletAddress
+    : wagmiAddress
+
+  // Get balance from appropriate source
+  const balance = isInFarcaster
+    ? farcaster.walletBalance ? parseFloat(farcaster.walletBalance) : 0
+    : wagmiBalance ? parseFloat(wagmiBalance.formatted) : 0
 
   // Sync with Farcaster wallet when available
   useEffect(() => {
-    if (farcaster.isWalletConnected && farcaster.walletAddress) {
-      setAddress(farcaster.walletAddress)
-      setIsConnected(true)
+    if (isInFarcaster && farcaster.isWalletConnected && farcaster.walletAddress) {
       setIsFarcasterWallet(true)
       setFarcasterUser(farcaster.user)
-      
-      // Convert balance from string to number if available
-      if (farcaster.walletBalance) {
-        const balanceValue = parseFloat(farcaster.walletBalance)
-        if (!isNaN(balanceValue)) {
-          setBalance(balanceValue)
-        }
-      }
+    } else if (isInFarcaster && !farcaster.isWalletConnected) {
+      setIsFarcasterWallet(false)
+      setFarcasterUser(null)
+    } else if (!isInFarcaster) {
+      setIsFarcasterWallet(false)
+      setFarcasterUser(null)
     }
-  }, [farcaster.isWalletConnected, farcaster.walletAddress, farcaster.walletBalance, farcaster.user])
+  }, [isInFarcaster, farcaster.isWalletConnected, farcaster.walletAddress, farcaster.user])
 
   const connectWallet = useCallback(async () => {
     setIsConnecting(true)
     try {
-      // Try Farcaster wallet first if available
-      if (farcaster.sdk && !farcaster.isWalletConnected) {
-        await farcaster.connectWallet()
-        // The useEffect above will handle the state updates
-        return
+      if (isInFarcaster) {
+        // Try Farcaster wallet if inside Farcaster
+        if (farcaster.sdk && !farcaster.isWalletConnected) {
+          await farcaster.connectWallet()
+          // The useEffect above will handle the state updates
+          return
+        }
+      } else {
+        // Use AppKit modal for external connections
+        if (!wagmiConnected) {
+          if (appKitOpen) {
+            appKitOpen() // Open the AppKit connection modal
+          } else {
+            // Fallback: try to connect using wagmi's connect directly
+            if (connectors.length > 0) {
+              connect({ connector: connectors[0] })
+            }
+          }
+          return
+        }
       }
-      
-      // Fallback to mock wallet if Farcaster is not available
-      await new Promise((resolve) => setTimeout(resolve, 1500))
-
-      // Mock wallet data
-      const mockAddress = "0x" + Math.random().toString(16).slice(2, 42)
-      const mockBalance = Math.floor(Math.random() * 50000) + 5000
-
-      setAddress(mockAddress)
-      setBalance(mockBalance)
-      setIsConnected(true)
-      setIsFarcasterWallet(false)
-
-      // Store in localStorage for persistence
-      localStorage.setItem("walletAddress", mockAddress)
-      localStorage.setItem("walletBalance", mockBalance.toString())
     } catch (error) {
       console.error("Failed to connect wallet:", error)
     } finally {
       setIsConnecting(false)
     }
-  }, [farcaster])
+  }, [isInFarcaster, farcaster, wagmiConnected, appKitOpen, connect, connectors, isClient])
 
   const disconnectWallet = useCallback(async () => {
-    // Disconnect Farcaster wallet if connected
-    if (isFarcasterWallet && farcaster.sdk) {
-      await farcaster.disconnectWallet()
+    if (isInFarcaster) {
+      // Disconnect Farcaster wallet if connected
+      if (isFarcasterWallet && farcaster.sdk) {
+        await farcaster.disconnectWallet()
+      }
+    } else {
+      // Disconnect wagmi wallet
+      disconnect()
     }
-    
-    setIsConnected(false)
-    setAddress(null)
-    setBalance(0)
-    setIsFarcasterWallet(false)
-    setFarcasterUser(null)
-    localStorage.removeItem("walletAddress")
-    localStorage.removeItem("walletBalance")
-  }, [isFarcasterWallet, farcaster])
+  }, [isInFarcaster, isFarcasterWallet, farcaster, disconnect])
 
   const updateBalance = useCallback(
     (amount: number) => {
-      setBalance((prev) => prev + amount)
-      if (address) {
-        localStorage.setItem("walletBalance", (balance + amount).toString())
-      }
+      // Balance is managed by wagmi or Farcaster, so this is mainly for UI updates
+      // You might want to refetch balance after transactions
     },
-    [address, balance],
+    [],
   )
 
   return (
     <WalletContext.Provider
       value={{ 
-        isConnected, 
-        address, 
+        isConnected: isConnected || false, 
+        address: address || null, 
         balance, 
-        isConnecting, 
+        isConnecting: isConnecting || wagmiPending, 
         connectWallet, 
         disconnectWallet, 
         updateBalance,

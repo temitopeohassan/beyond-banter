@@ -7,7 +7,7 @@ async function main() {
   console.log("Deploying with:", deployer.address);
   
   const balance = await ethers.provider.getBalance(deployer.address);
-  console.log("Deployer balance:", ethers.formatEther(balance), "CELO");
+  console.log("Deployer balance:", ethers.formatEther(balance), "ETH");
 
   const usdcAddress = process.env.USDC_ADDRESS || ethers.ZeroAddress;
   if (usdcAddress === ethers.ZeroAddress) {

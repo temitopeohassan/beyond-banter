@@ -5,6 +5,7 @@ import type { Metadata } from 'next'
 import { WalletProvider } from '@/lib/wallet-context'
 import { FarcasterProvider } from '@/lib/farcaster-context'
 import { ContractProvider } from '@/lib/wagmi-provider'
+import { AppKitProvider } from '@/components/appkit-provider'
 import { FooterTabs } from '@/components/footer-tabs'
 import { FarcasterReady } from '@/components/farcaster-ready'
 
@@ -24,12 +25,14 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <FarcasterReady />
         <FarcasterProvider>
           <ContractProvider>
-            <WalletProvider>
-              <div className="pb-20">
-                {children}
-              </div>
-              <FooterTabs />
-            </WalletProvider>
+            <AppKitProvider>
+              <WalletProvider>
+                <div className="pb-20">
+                  {children}
+                </div>
+                <FooterTabs />
+              </WalletProvider>
+            </AppKitProvider>
           </ContractProvider>
         </FarcasterProvider>
       </body>
